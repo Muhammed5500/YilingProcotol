@@ -15,6 +15,8 @@ import {
   Globe,
   Layers,
   Menu,
+  Moon,
+  Sun,
   X,
   Zap,
   Dices,
@@ -2003,6 +2005,19 @@ export default function DocsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [hydrated, setHydrated] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("docs-dark-mode");
+    if (saved === "true") setDarkMode(true);
+  }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => {
+      localStorage.setItem("docs-dark-mode", String(!prev));
+      return !prev;
+    });
+  };
   const content = docsContent[slug] || `# Not Found\n\nPage \`${slug}\` not found.`;
 
   // After hydration, set initial collapsed state based on active slug
@@ -2032,28 +2047,43 @@ export default function DocsPage() {
   const nextPage = currentIdx < allPages.length - 1 ? allPages[currentIdx + 1] : null;
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className={`min-h-screen flex transition-colors duration-300 ${darkMode ? "docs-dark" : ""}`} style={darkMode ? { background: "#0a0a0f", color: "#e5e5e5" } : {}}>
       {/* Mobile sidebar toggle */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 rounded-lg bg-surface border border-border flex items-center justify-center"
+        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-300"
+        style={darkMode ? { background: "#1a1a2e", border: "1px solid #2d2d44", color: "#e5e5e5" } : { background: "#ffffff", border: "1px solid #e5e5e5" }}
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-surface border-r border-border overflow-y-auto z-40 transition-transform duration-300 ${
+        className={`fixed lg:sticky top-0 left-0 h-screen w-72 overflow-y-auto z-40 transition-all duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
+        style={darkMode ? { background: "#111118", borderRight: "1px solid #2d2d44" } : { background: "#ffffff", borderRight: "1px solid #e5e5e5" }}
       >
         <div className="p-6">
-          <Link href="/" className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center">
-              <Dices className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-heading font-bold text-[15px] text-text">Yiling Docs</span>
-          </Link>
+          <div className="flex items-center justify-between mb-8">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center">
+                <Dices className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-heading font-bold text-[15px]" style={{ color: darkMode ? "#e5e5e5" : "#171717" }}>Yiling Docs</span>
+            </Link>
+            <button
+              onClick={toggleDarkMode}
+              className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+              style={darkMode
+                ? { background: "#1e1e2e", border: "1px solid #3d3d5c", color: "#fbbf24" }
+                : { background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#525252" }
+              }
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
 
           <nav className="space-y-6">
             {docsTree.map((section) => {
@@ -2070,9 +2100,8 @@ export default function DocsPage() {
                         [section.title]: !prev[section.title],
                       }));
                     }}
-                    className={`flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] font-semibold mb-3 w-full text-left cursor-pointer hover:text-text-secondary transition-colors ${
-                      isActiveSection && isCollapsed ? "text-orange" : "text-text-muted"
-                    }`}
+                    className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] font-semibold mb-3 w-full text-left cursor-pointer transition-colors"
+                    style={{ color: isActiveSection && isCollapsed ? "#ea580c" : darkMode ? "#6b7280" : "#a3a3a3" }}
                   >
                     <section.icon className="w-3.5 h-3.5" />
                     <span className="flex-1">{section.title}</span>
@@ -2096,9 +2125,13 @@ export default function DocsPage() {
                             onClick={() => setSidebarOpen(false)}
                             className={`block px-3 py-2 rounded-lg text-[14px] transition-colors ${
                               slug === item.slug
-                                ? "bg-orange/10 text-orange font-semibold"
-                                : "text-text-secondary hover:text-text hover:bg-surface-2"
+                                ? "font-semibold"
+                                : ""
                             }`}
+                            style={slug === item.slug
+                              ? { background: darkMode ? "#ea580c15" : "#ea580c10", color: "#ea580c" }
+                              : { color: darkMode ? "#9ca3af" : "#525252" }
+                            }
                           >
                             {item.title}
                           </Link>
@@ -2111,10 +2144,11 @@ export default function DocsPage() {
             })}
           </nav>
 
-          <div className="mt-8 pt-6 border-t border-border">
+          <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${darkMode ? "#2d2d44" : "#e5e5e5"}` }}>
             <Link
               href="/"
-              className="flex items-center gap-2 text-[13px] text-text-muted hover:text-text transition-colors"
+              className="flex items-center gap-2 text-[13px] transition-colors"
+              style={{ color: darkMode ? "#6b7280" : "#a3a3a3" }}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Back to Landing
@@ -2126,12 +2160,12 @@ export default function DocsPage() {
       {/* Content */}
       <main className="flex-1 min-w-0 lg:pl-0">
         <div className="max-w-3xl mx-auto px-6 lg:px-12 py-12 lg:py-16">
-          <article className="docs-content">
+          <article className={`docs-content ${darkMode ? "docs-content-dark" : ""}`}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </article>
 
           {/* Prev/Next navigation */}
-          <div className="flex items-center justify-between mt-16 pt-8 border-t border-border">
+          <div className="flex items-center justify-between mt-16 pt-8" style={{ borderTop: `1px solid ${darkMode ? "#2d2d44" : "#e5e5e5"}` }}>
             {prevPage ? (
               <Link
                 href={`/docs/${prevPage.slug}`}
