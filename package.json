@@ -13,6 +13,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
@@ -20,11 +22,13 @@
     "lucide-react": "^0.577.0",
     "next": "^16.1.6",
     "postcss": "^8.5.8",
+    "postprocessing": "^6.38.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.2.1",
+    "three": "^0.183.2",
     "typescript": "^5.9.3"
   }
 }

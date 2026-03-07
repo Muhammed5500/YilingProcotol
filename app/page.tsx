@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import {
   motion,
   useScroll,
@@ -26,6 +27,8 @@ import {
   Zap,
 } from "lucide-react";
 
+const Dither = dynamic(() => import("./components/Dither"), { ssr: false });
+
 // ─── Animations ─────────────────────────────────────────────────────────────
 
 const fadeUp = {
@@ -42,51 +45,69 @@ function SectionDivider() {
 
 // ─── Navigation ─────────────────────────────────────────────────────────────
 
+const navLinks = [
+  { label: "Protocol", href: "#protocol" },
+  { label: "Infrastructure", href: "#infrastructure" },
+  { label: "Build", href: "#build" },
+  { label: "Markets", href: "https://yiling-protocol.vercel.app/markets", external: true },
+  { label: "Docs", href: "/docs/getting-started/overview" },
+];
+
 function Navigation({ dark }: { dark?: boolean }) {
-  const [scrolled, setScrolled] = useState(false);
+  const [inHero, setInHero] = useState(true);
+
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", h);
-    return () => window.removeEventListener("scroll", h);
+    const handleScroll = () => {
+      const heroEl = document.getElementById("home");
+      if (heroEl) {
+        const heroBottom = heroEl.getBoundingClientRect().bottom;
+        setInHero(heroBottom > 80);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        dark
-          ? scrolled ? "border-b border-[#2d2d44] bg-[#0a0a0f]/90 backdrop-blur-xl" : "bg-transparent"
-          : scrolled ? "border-b border-border bg-white/80 backdrop-blur-xl" : "bg-transparent"
-      }`}
-    >
-      <div className="mx-auto max-w-6xl px-6 flex items-center justify-between h-[72px]">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center">
-            <Dices className="w-4 h-4 text-white" />
-          </div>
-          <span className={`font-heading font-bold text-[16px] tracking-tight transition-colors duration-500 ${dark ? "text-white" : "text-text"}`}>Yiling Protocol</span>
-        </div>
+  const onDark = dark || inHero;
 
-        <div className={`hidden md:flex items-center gap-8 text-[14px] font-medium transition-colors duration-500 ${dark ? "text-[#a3a3a3]" : "text-text-secondary"}`}>
-          {["Protocol", "Infrastructure", "Build"].map((i) => (
-            <a key={i} href={`#${i.toLowerCase()}`} className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>
-              {i}
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center px-6 pt-4 pointer-events-none">
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`pointer-events-auto w-full max-w-3xl flex items-center justify-between px-6 py-3 rounded-full border transition-all duration-500 ${
+          onDark
+            ? "bg-black/30 border-white/10 shadow-lg shadow-black/20 backdrop-blur-xl"
+            : "bg-white/80 border-border shadow-lg shadow-black/5 backdrop-blur-xl"
+        }`}
+      >
+        <a href="#home" className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-orange flex items-center justify-center">
+            <Dices className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className={`font-heading font-medium text-[15px] tracking-tight lowercase transition-colors duration-500 ${onDark ? "text-white" : "text-text"}`}>
+            yiling protocol
+          </span>
+        </a>
+
+        <div className="hidden md:flex items-center gap-1">
+          {navLinks.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-300 whitespace-nowrap ${
+                onDark
+                  ? "text-white/60 hover:text-white hover:bg-white/10"
+                  : "text-text-secondary hover:text-text hover:bg-black/5"
+              }`}
+            >
+              {item.label}
             </a>
           ))}
-          <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Markets</a>
-          <a href="/docs/getting-started/overview" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Docs</a>
         </div>
-
-        <a
-          href="https://yiling-protocol.vercel.app/markets"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-500 ${
-            dark ? "bg-white text-[#0a0a0f] hover:bg-gray-200" : "bg-text text-white hover:bg-accent-light"
-          }`}
-        >
-          Explore Markets <ArrowRight className="w-3.5 h-3.5" />
-        </a>
-      </div>
+      </motion.div>
     </nav>
   );
 }
@@ -95,135 +116,44 @@ function Navigation({ dark }: { dark?: boolean }) {
 
 function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center pt-20 pb-16">
-      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
+    <section id="home" className="relative min-h-[100vh] flex items-center justify-center pt-20 pb-16 overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <Dither
+          waveColor={[0.55, 0.35, 0.25]}
+          disableAnimation={false}
+          enableMouseInteraction
+          mouseRadius={0.3}
+          colorNum={4}
+          waveAmplitude={0.3}
+          waveFrequency={3}
+          waveSpeed={0.05}
+        />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)" }} />
+      </div>
+      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center pointer-events-none">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-8">
-          <motion.div variants={fadeUp} className="flex justify-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange/20 bg-orange-light text-[13px] text-orange font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange" />
-              Built on Harvard Research
-            </div>
-          </motion.div>
 
-          <motion.h1 variants={fadeUp} className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1]">
-            <span className="text-text">The Self-Resolving</span>
+          <motion.h1 variants={fadeUp} className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1]" style={{ textShadow: "0 2px 30px rgba(0,0,0,0.6)" }}>
+            <span className="text-white">The Self-Resolving</span>
             <br />
-            <span className="text-text-secondary">Truth Layer</span>
-            <br />
-            <span className="text-[#0052FF]" style={{ fontSize: "0.45em" }}>Live on Base</span>
+            <span className="text-[#f0a070]">Truth Layer</span>
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="max-w-lg mx-auto text-[17px] text-text-secondary leading-relaxed">
+          <motion.p variants={fadeUp} className="max-w-lg mx-auto text-[17px] text-white/80 leading-relaxed" style={{ textShadow: "0 1px 12px rgba(0,0,0,0.5)" }}>
             Oracle-free prediction markets where truth emerges
             from game theory. Deployed and running on Base.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 pointer-events-auto">
             <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#0052FF] text-white text-[15px] font-semibold transition-all duration-200 hover:bg-[#003ECB] hover:scale-[1.02]">
+              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-white text-[#0a0a0f] text-[15px] font-semibold transition-all duration-200 hover:bg-white/90 hover:scale-[1.02]">
               Explore Live Markets
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a href="/docs/getting-started/overview"
-              className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
+              className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-white/25 text-white/80 hover:text-white hover:border-white/50 text-[15px] font-medium transition-all duration-200 backdrop-blur-md bg-white/5">
               Build With Yiling <ArrowRight className="w-4 h-4" />
             </a>
-          </motion.div>
-
-          <motion.div variants={fadeUp} className="flex items-center justify-center gap-12 pt-10">
-            {[
-              { value: "0", label: "Oracles Needed" },
-              { value: "Base", label: "Network" },
-              { value: "100%", label: "Open Source" },
-            ].map((stat, i) => (
-              <div key={stat.label} className="text-center">
-                <span className="font-heading font-bold text-2xl sm:text-3xl tracking-tight text-text">{stat.value}</span>
-                <p className="text-[11px] text-text-muted mt-1 tracking-[0.1em] uppercase font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Marquee Band ───────────────────────────────────────────────────────────
-
-function MarqueeBand({ items, reverse }: { items: string[]; reverse?: boolean }) {
-  const content = items.join(" \u00B7 ") + " \u00B7 ";
-  return (
-    <div className="overflow-hidden border-y border-border">
-      <div
-        className="marquee-track whitespace-nowrap py-3 text-[12px] font-mono uppercase tracking-[0.2em] text-text-muted"
-        style={{ animationDirection: reverse ? "reverse" : "normal" }}
-      >
-        <span>{content}</span>
-        <span>{content}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Problem / Solution ─────────────────────────────────────────────────────
-
-function Problem() {
-  return (
-    <section className="relative py-28 px-6">
-      <div className="mx-auto max-w-5xl">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: false, margin: "-80px" }} variants={stagger}
-          className="grid md:grid-cols-2 gap-6">
-          {/* Problem */}
-          <motion.div variants={fadeUp}
-            className="card p-10 relative overflow-hidden">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-light text-[12px] font-semibold text-rose">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose" />
-                The Problem
-              </div>
-              <h2 className="font-heading font-bold text-[26px] sm:text-[30px] leading-[1.15] tracking-tight">
-                Oracles are the<br />single point of failure
-              </h2>
-              <p className="text-text-secondary text-[15px] leading-[1.75]">
-                Every prediction market today depends on an external oracle.
-                For subjective or long-horizon questions, no reliable oracle exists.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                {["Oracle", "Trust", "Centralization"].map((item) => (
-                  <span key={item}
-                    className="px-3 py-1.5 rounded-md bg-rose-light text-rose/70 text-[12px] font-medium line-through decoration-rose/40">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Solution */}
-          <motion.div variants={fadeUp}
-            className="card p-10 relative overflow-hidden">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-light text-[12px] font-semibold text-success">
-                <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                The Solution
-              </div>
-              <h2 className="font-heading font-bold text-[26px] sm:text-[30px] leading-[1.15] tracking-tight">
-                The market resolves<br /><span className="text-text-secondary">itself</span>
-              </h2>
-              <p className="text-text-secondary text-[15px] leading-[1.75]">
-                Yiling Protocol implements the <span className="text-text font-semibold">SKC mechanism</span> —
-                truth emerges from mathematics.
-                Honest reporting is a <span className="text-text font-semibold">Perfect Bayesian Equilibrium</span>.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                {["Game Theory", "Math", "Autonomous"].map((item) => (
-                  <span key={item}
-                    className="px-3 py-1.5 rounded-md bg-orange-light text-orange text-[12px] font-semibold">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
           </motion.div>
         </motion.div>
       </div>
@@ -1022,32 +952,6 @@ function ChainAgnostic() {
             </div>
           </motion.div>
 
-          {/* Why Base */}
-          <motion.div variants={fadeUp} className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
-            {[
-              { title: "Low Gas Costs", desc: "EIP-4844 makes agent transactions economically viable at scale" },
-              { title: "Coinbase Ecosystem", desc: "Access to the largest crypto on-ramp and user base" },
-              { title: "EVM Compatible", desc: "Standard Solidity contracts — easily auditable and composable" },
-            ].map((item) => (
-              <div key={item.title} className="card p-6 text-center space-y-3">
-                <h4 className="font-heading font-bold text-[15px] text-text">{item.title}</h4>
-                <p className="text-text-muted text-[13px] leading-[1.7]">{item.desc}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Coming Soon */}
-          <motion.div variants={fadeUp} className="text-center space-y-4">
-            <p className="text-text-muted text-[12px] font-semibold tracking-[0.15em] uppercase">Protocol is chain-agnostic · More networks coming soon</p>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              {["Ethereum", "Arbitrum", "Optimism", "Polygon", "Avalanche"].map((name) => (
-                <div key={name} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 text-text-muted/40 text-[12px]">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 opacity-30">{chainLogos[name]?.icon}</svg>
-                  {name}
-                </div>
-              ))}
-            </div>
-          </motion.div>
         </motion.div>
       </div>
     </section>
@@ -1089,74 +993,22 @@ function CTA() {
 
 // ─── Footer ──────────────────────────────────────────────────────────────────
 
-function SlotLetter({ char, delay, color }: { char: string; delay: number; color: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: false, margin: "-50px" });
-  const [settled, setSettled] = useState(false);
-  const [display, setDisplay] = useState(char);
-
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  useEffect(() => {
-    if (!inView) { setSettled(false); setDisplay(char); return; }
-    let frame = 0;
-    const totalFrames = 12;
-    const timeout = setTimeout(() => {
-      const interval = setInterval(() => {
-        frame++;
-        if (frame >= totalFrames) {
-          setDisplay(char);
-          setSettled(true);
-          clearInterval(interval);
-        } else {
-          setDisplay(chars[Math.floor(Math.random() * chars.length)]);
-        }
-      }, 50);
-      return () => clearInterval(interval);
-    }, delay);
-    return () => clearTimeout(timeout);
-  }, [inView, char, delay]);
-
-  return (
-    <div ref={ref} className="inline-block overflow-hidden relative" style={{ lineHeight: 1 }}>
-      <motion.span
-        initial={{ y: "-100%" }}
-        animate={inView ? { y: 0 } : { y: "-100%" }}
-        transition={{ delay: delay / 1000, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-        className="inline-block font-heading font-extrabold"
-        style={{
-          WebkitTextStroke: `2px ${color}`,
-          WebkitTextFillColor: settled ? "transparent" : color,
-          paintOrder: "stroke fill",
-          opacity: settled ? 1 : 0.30,
-          transition: "opacity 0.6s ease, -webkit-text-fill-color 0.6s ease",
-        }}
-      >
-        {display}
-      </motion.span>
-    </div>
-  );
-}
-
 function BigBrandText() {
-  const word1 = "YILING";
-  const word2 = "PROTOCOL";
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: false, margin: "-80px" });
 
   return (
-    <div className="relative py-16 overflow-hidden">
-      <div className="relative mx-auto max-w-6xl px-6">
-        <div className="text-center select-none text-[60px] sm:text-[90px] md:text-[120px] lg:text-[150px] tracking-[0.02em] leading-[0.9]">
-          <div>
-            {word1.split("").map((char, i) => (
-              <SlotLetter key={`y-${i}`} char={char} delay={i * 80} color="#d4d4d4" />
-            ))}
-          </div>
-          <div>
-            {word2.split("").map((char, i) => (
-              <SlotLetter key={`p-${i}`} char={char} delay={i * 80} color="#ea580c" />
-            ))}
-          </div>
-        </div>
+    <div ref={ref} className="relative py-10">
+      <div className="relative mx-auto px-6 text-center select-none">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{ duration: 1, ease: [0.25, 0.1, 0.25, 1] }}
+          className="font-heading font-extrabold text-[56px] sm:text-[80px] md:text-[120px] lg:text-[160px] tracking-[-0.04em] leading-[1]"
+        >
+          <div className="text-text/[0.07]">yiling</div>
+          <div className="text-orange/[0.15]">protocol</div>
+        </motion.div>
       </div>
     </div>
   );
@@ -1164,48 +1016,38 @@ function BigBrandText() {
 
 function Footer() {
   return (
-    <footer className="relative border-t border-border">
-      <div className="relative py-16 px-6">
+    <footer className="relative">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+      </div>
+      <div className="relative py-12 px-6">
         <div className="relative mx-auto max-w-5xl">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-12">
-            <div className="lg:col-span-2 space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center">
-                  <Dices className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-heading font-bold text-[17px] text-text">Yiling Protocol</span>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-md bg-orange flex items-center justify-center">
+                <Dices className="w-3 h-3 text-white" />
               </div>
-              <p className="text-text-muted text-[14px] leading-[1.8] max-w-xs">The Self-Resolving Truth Layer. Oracle-free prediction markets live on Base.</p>
-              <div className="flex items-center gap-2.5 pt-1">
-                <a href="#" className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
-                  <Github className="w-4 h-4" />
-                </a>
-                <a href="#" className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                </a>
-              </div>
+              <span className="font-heading font-medium text-[14px] text-text-muted lowercase tracking-tight">yiling protocol</span>
             </div>
-            {[
-              { title: "Protocol", links: ["Overview", "Mechanism", "Infrastructure", "Chains"] },
-              { title: "Developers", links: ["SDK Docs", "Agent API", "Contracts", "GitHub"] },
-              { title: "Resources", links: ["SKC Paper", "Blog", "FAQ"] },
-            ].map((col) => (
-              <div key={col.title} className="space-y-4">
-                <h4 className="text-[12px] text-text-muted uppercase tracking-[0.15em] font-semibold">{col.title}</h4>
-                <ul className="space-y-2.5">
-                  {col.links.map((l) => (
-                    <li key={l}><a href="#" className="text-[14px] text-text-muted hover:text-text transition-colors duration-200">{l}</a></li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+
+            <div className="flex items-center gap-6 text-[13px] text-text-muted">
+              {["Protocol", "Docs", "GitHub"].map((l) => (
+                <a key={l} href="#" className="hover:text-text transition-colors duration-200">{l}</a>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <a href="#" className="text-text-muted hover:text-text transition-colors duration-200">
+                <Github className="w-4 h-4" />
+              </a>
+              <a href="#" className="text-text-muted hover:text-text transition-colors duration-200">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+              </a>
+            </div>
           </div>
 
-          <div className="section-divider mt-12 mb-8" />
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-text-muted text-[13px]">MIT License &middot; Built on Harvard Research</p>
-            <p className="text-text-muted text-[13px]">&copy; 2026 Yiling Protocol</p>
+          <div className="mt-8 text-center">
+            <p className="text-text-muted/50 text-[12px]">&copy; 2026 Yiling Protocol &middot; MIT License</p>
           </div>
         </div>
       </div>
@@ -1222,34 +1064,14 @@ export default function Home() {
     <main>
       <Navigation dark={isDark} />
       <Hero />
-
-      <MarqueeBand items={[
-        "ORACLE-FREE", "SELF-RESOLVING", "LIVE ON BASE", "GAME THEORY",
-        "SKC MECHANISM", "CROSS-ENTROPY", "OPEN SOURCE", "EVM COMPATIBLE",
-        "PERMISSIONLESS", "PREDICTION MARKETS", "TRUTH LAYER"
-      ]} />
-
-      <Problem />
-      <SectionDivider />
       <HowItWorks onDarkChange={setIsDark} />
       <SectionDivider />
       <Mechanism />
-
-      <MarqueeBand
-        reverse
-        items={[
-          "DEPLOYED ON BASE", "ANY AGENT", "LOW GAS", "ANY QUESTION",
-          "MODULAR CONTRACTS", "REST API", "WEBSOCKET", "FOUNDRY",
-          "HARVARD RESEARCH", "BAYESIAN EQUILIBRIUM"
-        ]}
-      />
-
       <Infrastructure />
       <SectionDivider />
       <Builders />
       <SectionDivider />
       <ChainAgnostic />
-      <CTA />
       <BigBrandText />
       <Footer />
     </main>
