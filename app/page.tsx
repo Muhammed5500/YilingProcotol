@@ -72,16 +72,19 @@ function Navigation({ dark }: { dark?: boolean }) {
               {i}
             </a>
           ))}
+          <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Markets</a>
           <a href="/docs/getting-started/overview" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Docs</a>
         </div>
 
         <a
-          href="/docs/getting-started/quickstart"
+          href="https://yiling-protocol.vercel.app/markets"
+          target="_blank"
+          rel="noopener noreferrer"
           className={`hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-500 ${
             dark ? "bg-white text-[#0a0a0f] hover:bg-gray-200" : "bg-text text-white hover:bg-accent-light"
           }`}
         >
-          Enter Protocol <ArrowRight className="w-3.5 h-3.5" />
+          Explore Markets <ArrowRight className="w-3.5 h-3.5" />
         </a>
       </div>
     </nav>
@@ -106,29 +109,31 @@ function Hero() {
             <span className="text-text">The Self-Resolving</span>
             <br />
             <span className="text-text-secondary">Truth Layer</span>
+            <br />
+            <span className="text-[#0052FF]" style={{ fontSize: "0.45em" }}>Live on Base</span>
           </motion.h1>
 
           <motion.p variants={fadeUp} className="max-w-lg mx-auto text-[17px] text-text-secondary leading-relaxed">
             Oracle-free prediction markets where truth emerges
-            from game theory. Deploy on any chain.
+            from game theory. Deployed and running on Base.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <a href="/docs/getting-started/quickstart"
-              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:bg-accent-light hover:scale-[1.02]">
-              Enter Protocol
+            <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#0052FF] text-white text-[15px] font-semibold transition-all duration-200 hover:bg-[#003ECB] hover:scale-[1.02]">
+              Explore Live Markets
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
-            <a href="https://arxiv.org/abs/2306.04305" target="_blank" rel="noopener noreferrer"
+            <a href="/docs/getting-started/overview"
               className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
-              Read the Paper <ExternalLink className="w-4 h-4" />
+              Build With Yiling <ArrowRight className="w-4 h-4" />
             </a>
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-12 pt-10">
             {[
               { value: "0", label: "Oracles Needed" },
-              { value: "Any", label: "Chain" },
+              { value: "Base", label: "Network" },
               { value: "100%", label: "Open Source" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
@@ -693,7 +698,7 @@ function Mechanism() {
 
 const infraFeatures = [
   { icon: Brain, title: "Open Agent Framework", desc: "Plug in any agent — AI, human, or algorithmic. Define your own reasoning strategy with our SDK." },
-  { icon: Globe, title: "Chain-Agnostic Deployment", desc: "Deploy on any chain with a single config change. SDK and guides included." },
+  { icon: Globe, title: "Live on Base", desc: "Deployed and running on Base. Low gas costs make prediction markets accessible to everyone." },
   { icon: Zap, title: "Self-Resolving Markets", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
   { icon: Code2, title: "Modular Smart Contracts", desc: "MarketFactory, PredictionMarket, and FixedPointMath — composable and auditable." },
   { icon: Users, title: "Permissionless Participation", desc: "Anyone can create markets, build agents, or integrate the protocol. No gatekeepers." },
@@ -843,7 +848,7 @@ function CodeTypewriter() {
 
 const builderCards = [
   { icon: Brain, title: "Connect an Agent", desc: "Plug in any agent via webhook or standalone. Use any LLM, any language, any strategy.", link: "Agent SDK" },
-  { icon: Globe, title: "Deploy the Protocol", desc: "Deploy the full contract suite on any chain. One config, one command.", link: "Deployment Guide" },
+  { icon: Globe, title: "Live on Base", desc: "The full contract suite is deployed and running on Base. Explore live markets or build on top.", link: "View Markets" },
   { icon: Cpu, title: "Integrate via API", desc: "REST API and WebSocket feeds. Build your own interface on top of Yiling Protocol.", link: "API Reference" },
 ];
 
@@ -982,26 +987,68 @@ function ChainTicker({ chains, reverse }: { chains: string[]; reverse?: boolean 
 
 function ChainAgnostic() {
   return (
-    <section className="relative py-28">
-      <div className="relative mx-auto max-w-5xl text-center px-6">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: false, margin: "-80px" }} variants={stagger} className="space-y-4 mb-14">
-          <motion.p variants={fadeUp} className="text-text-muted text-[12px] font-semibold tracking-[0.2em] uppercase">Deployment</motion.p>
-          <motion.h2 variants={fadeUp} className="font-heading font-bold text-[30px] sm:text-[38px] md:text-[44px] tracking-tight">Deploy on Any Chain</motion.h2>
-          <motion.p variants={fadeUp} className="text-text-secondary text-[16px]">One protocol. Every chain. Your rules.</motion.p>
+    <section className="relative py-28 px-6">
+      <div className="relative mx-auto max-w-5xl">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: false, margin: "-80px" }} variants={stagger} className="space-y-14">
+          <motion.div variants={fadeUp} className="text-center space-y-4">
+            <p className="text-text-muted text-[12px] font-semibold tracking-[0.2em] uppercase">Deployment</p>
+            <h2 className="font-heading font-bold text-[30px] sm:text-[38px] md:text-[44px] tracking-tight">Live on Base</h2>
+            <p className="text-text-secondary text-[16px]">Deployed, tested, and running on Base Network</p>
+          </motion.div>
+
+          {/* Base Primary Card */}
+          <motion.div variants={fadeUp} className="mx-auto max-w-2xl">
+            <div className="card p-10 border-[#0052FF]/30 hover:border-[#0052FF]/60 transition-all duration-300 text-center space-y-6">
+              <div className="flex justify-center">
+                <svg viewBox="0 0 24 24" className="w-16 h-16">
+                  <circle cx="12" cy="12" r="10" fill="#0052FF"/>
+                  <path d="M12 6a6 6 0 100 12 6 6 0 000-12zm0 2a4 4 0 110 8V8z" fill="#fff"/>
+                </svg>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-heading font-bold text-[24px] text-text">Base Network</h3>
+                <p className="text-text-secondary text-[15px]">Primary deployment — live & battle-tested</p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-2 px-7 py-3 rounded-full bg-[#0052FF] text-white text-[14px] font-semibold transition-all duration-200 hover:bg-[#003ECB] hover:scale-[1.02]">
+                  Explore Markets <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </a>
+                <a href="https://basescan.org" target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-7 py-3 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[14px] font-medium transition-all duration-200">
+                  View on BaseScan <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Why Base */}
+          <motion.div variants={fadeUp} className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
+            {[
+              { title: "Low Gas Costs", desc: "EIP-4844 makes agent transactions economically viable at scale" },
+              { title: "Coinbase Ecosystem", desc: "Access to the largest crypto on-ramp and user base" },
+              { title: "EVM Compatible", desc: "Standard Solidity contracts — easily auditable and composable" },
+            ].map((item) => (
+              <div key={item.title} className="card p-6 text-center space-y-3">
+                <h4 className="font-heading font-bold text-[15px] text-text">{item.title}</h4>
+                <p className="text-text-muted text-[13px] leading-[1.7]">{item.desc}</p>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Coming Soon */}
+          <motion.div variants={fadeUp} className="text-center space-y-4">
+            <p className="text-text-muted text-[12px] font-semibold tracking-[0.15em] uppercase">Protocol is chain-agnostic · More networks coming soon</p>
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              {["Ethereum", "Arbitrum", "Optimism", "Polygon", "Avalanche"].map((name) => (
+                <div key={name} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 text-text-muted/40 text-[12px]">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 opacity-30">{chainLogos[name]?.icon}</svg>
+                  {name}
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </motion.div>
-      </div>
-
-      {/* Full-width chain ticker */}
-      <div className="space-y-2">
-        <ChainTicker chains={chainRow1} />
-        <ChainTicker chains={chainRow2} reverse />
-      </div>
-
-      <div className="text-center mt-10 space-y-4">
-        <a href="/docs/chains/overview" className="inline-flex items-center gap-2 px-7 py-3 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[14px] font-semibold transition-all duration-200">
-          Explore Integrations <ArrowRight className="w-4 h-4" />
-        </a>
-        <p className="text-text-muted text-[13px]">Chain-agnostic · SDK included · One-line config</p>
       </div>
     </section>
   );
@@ -1021,16 +1068,16 @@ function CTA() {
               <span className="text-text-secondary">future of truth?</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-text-secondary text-[16px] max-w-md mx-auto leading-relaxed">
-              Deploy the protocol on your chain, connect your agents, and create self-resolving markets.
+              Explore live markets on Base, connect your agents, or build on top of the protocol.
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <a href="/docs/getting-started/quickstart"
-                className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-orange text-white text-[15px] font-semibold transition-all duration-200 hover:brightness-110 hover:scale-[1.02]">
-                Start Building <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <a href="https://yiling-protocol.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+                className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#0052FF] text-white text-[15px] font-semibold transition-all duration-200 hover:bg-[#003ECB] hover:scale-[1.02]">
+                Explore Markets <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
-              <a href="#"
+              <a href="/docs/getting-started/overview"
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
-                <Github className="w-4 h-4" /> View on GitHub
+                Read the Docs <ArrowRight className="w-4 h-4" />
               </a>
             </motion.div>
           </div>
@@ -1128,7 +1175,7 @@ function Footer() {
                 </div>
                 <span className="font-heading font-bold text-[17px] text-text">Yiling Protocol</span>
               </div>
-              <p className="text-text-muted text-[14px] leading-[1.8] max-w-xs">The Self-Resolving Truth Layer. Open protocol for oracle-free prediction markets on any chain.</p>
+              <p className="text-text-muted text-[14px] leading-[1.8] max-w-xs">The Self-Resolving Truth Layer. Oracle-free prediction markets live on Base.</p>
               <div className="flex items-center gap-2.5 pt-1">
                 <a href="#" className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
                   <Github className="w-4 h-4" />
@@ -1158,7 +1205,7 @@ function Footer() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-text-muted text-[13px]">MIT License &middot; Built on Harvard Research</p>
-            <p className="text-text-muted text-[13px]">&copy; 2025 Yiling Protocol</p>
+            <p className="text-text-muted text-[13px]">&copy; 2026 Yiling Protocol</p>
           </div>
         </div>
       </div>
@@ -1177,7 +1224,7 @@ export default function Home() {
       <Hero />
 
       <MarqueeBand items={[
-        "ORACLE-FREE", "SELF-RESOLVING", "CHAIN-AGNOSTIC", "GAME THEORY",
+        "ORACLE-FREE", "SELF-RESOLVING", "LIVE ON BASE", "GAME THEORY",
         "SKC MECHANISM", "CROSS-ENTROPY", "OPEN SOURCE", "EVM COMPATIBLE",
         "PERMISSIONLESS", "PREDICTION MARKETS", "TRUTH LAYER"
       ]} />
@@ -1191,7 +1238,7 @@ export default function Home() {
       <MarqueeBand
         reverse
         items={[
-          "DEPLOY ANYWHERE", "ANY AGENT", "ANY CHAIN", "ANY QUESTION",
+          "DEPLOYED ON BASE", "ANY AGENT", "LOW GAS", "ANY QUESTION",
           "MODULAR CONTRACTS", "REST API", "WEBSOCKET", "FOUNDRY",
           "HARVARD RESEARCH", "BAYESIAN EQUILIBRIUM"
         ]}

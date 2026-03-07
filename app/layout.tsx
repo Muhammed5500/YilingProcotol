@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Yiling Protocol — The Self-Resolving Truth Layer",
+  title: "Yiling Protocol — Live on Base",
   description:
-    "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Chain-agnostic. Open source.",
+    "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Live on Base. Open source.",
 };
 
 export default function RootLayout({
