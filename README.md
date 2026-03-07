@@ -9,7 +9,7 @@ Yiling Protocol is a truth discovery infrastructure that eliminates oracle depen
 ## Live
 
 - **Network:** Base
-- **Markets:** [Explore Live Markets](https://yiling-protocol.vercel.app/markets)
+- **Markets:** [Explore Live Markets](https://yilingmarket-onbase.vercel.app/markets)
 - **Docs:** [Documentation](https://yiling-protocol-landing.vercel.app/docs/getting-started/overview)
 
 ## Tech Stack
