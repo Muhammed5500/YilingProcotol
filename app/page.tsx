@@ -72,12 +72,12 @@ function Navigation({ dark }: { dark?: boolean }) {
               {i}
             </a>
           ))}
-          <a href="https://yilingmarket-onbase.vercel.app/markets" target="_blank" rel="noopener noreferrer" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Markets</a>
+          <a href="https://yilingmarket-onbase.vercel.app/" target="_blank" rel="noopener noreferrer" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Markets</a>
           <a href="/docs/getting-started/overview" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Docs</a>
         </div>
 
         <a
-          href="https://yilingmarket-onbase.vercel.app/markets"
+          href="https://yilingmarket-onbase.vercel.app/"
           target="_blank"
           rel="noopener noreferrer"
           className={`hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-500 ${
@@ -119,7 +119,7 @@ function Hero() {
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <a href="https://yilingmarket-onbase.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+            <a href="https://yilingmarket-onbase.vercel.app/" target="_blank" rel="noopener noreferrer"
               className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#0052FF] text-white text-[15px] font-semibold transition-all duration-200 hover:bg-[#003ECB] hover:scale-[1.02]">
               Explore Live Markets
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -1008,7 +1008,7 @@ function ChainAgnostic() {
               <p className="text-[#0052FF] text-[13px] font-semibold">Active · Live Markets</p>
             </div>
           </div>
-          <a href="https://yilingmarket-onbase.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+          <a href="https://yilingmarket-onbase.vercel.app/" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0052FF] text-white text-[14px] font-semibold hover:brightness-110 transition-all duration-200">
             Explore Markets <ArrowRight className="w-4 h-4" />
           </a>
@@ -1053,7 +1053,7 @@ function CTA() {
               Yiling Protocol is live on Base. Explore prediction markets that resolve themselves through game theory.
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <a href="https://yilingmarket-onbase.vercel.app/markets" target="_blank" rel="noopener noreferrer"
+              <a href="https://yilingmarket-onbase.vercel.app/" target="_blank" rel="noopener noreferrer"
                 className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#0052FF] text-white text-[15px] font-semibold transition-all duration-200 hover:brightness-110 hover:scale-[1.02]">
                 Explore Live Markets <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
