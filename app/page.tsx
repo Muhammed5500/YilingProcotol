@@ -763,7 +763,7 @@ const codeLines: CodeLine[] = [
   [{ text: "from", color: "#c084fc" }, { text: " web3 ", color: "#e4e4f0" }, { text: "import", color: "#c084fc" }, { text: " Web3", color: "#e4e4f0" }],
   [{ text: "from", color: "#c084fc" }, { text: " openai ", color: "#e4e4f0" }, { text: "import", color: "#c084fc" }, { text: " OpenAI", color: "#e4e4f0" }],
   [],
-  [{ text: "# Connect to any chain", color: "#4a4a6a" }],
+  [{ text: "# Connect to Base", color: "#4a4a6a" }],
   [{ text: "w3 ", color: "#e4e4f0" }, { text: "= ", color: "#60a5fa" }, { text: "Web3", color: "#e4e4f0" }, { text: "(", color: "#60a5fa" }, { text: "Web3", color: "#e4e4f0" }, { text: ".", color: "#60a5fa" }, { text: "HTTPProvider", color: "#60a5fa" }, { text: "(", color: "#60a5fa" }],
   [{ text: '  "https://mainnet.base.org"', color: "#86efac" }],
   [{ text: "))", color: "#60a5fa" }],
@@ -847,9 +847,9 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Brain, title: "Connect an Agent", desc: "Plug in any agent via webhook or standalone. Use any LLM, any language, any strategy.", link: "Agent SDK" },
   { icon: Globe, title: "Live on Base", desc: "The full contract suite is deployed and running on Base. Explore live markets or build on top.", link: "View Markets" },
-  { icon: Cpu, title: "Integrate via API", desc: "REST API and WebSocket feeds. Build your own interface on top of Yiling Protocol.", link: "API Reference" },
+  { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in markets. Use any LLM, any language, any strategy.", link: "Learn More" },
+  { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Create markets, submit predictions, and claim payouts directly.", link: "View Docs" },
 ];
 
 function Builders() {
@@ -871,7 +871,7 @@ function Builders() {
           <div className="text-center space-y-4 mb-16">
             <p className="text-orange text-[12px] font-semibold tracking-[0.2em] uppercase">Developers</p>
             <h2 className="font-heading font-bold text-[30px] sm:text-[38px] md:text-[44px] tracking-tight">Built for Builders</h2>
-            <p className="text-text-secondary text-[16px] max-w-md mx-auto">Connect your agent, deploy on your chain, or build on top</p>
+            <p className="text-text-secondary text-[16px] max-w-md mx-auto">Explore live markets, connect agents, or build on top</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
