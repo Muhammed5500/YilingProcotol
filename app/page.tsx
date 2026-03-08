@@ -847,9 +847,9 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Globe, title: "Live on Base", desc: "The full contract suite is deployed and running on Base. Explore live markets or build on top.", link: "View Markets" },
-  { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in markets. Use any LLM, any language, any strategy.", link: "Learn More" },
-  { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Create markets, submit predictions, and claim payouts directly.", link: "View Docs" },
+  { icon: Globe, title: "Live on Base", desc: "The full contract suite is deployed and running on Base. Explore live markets or build on top.", link: "View Markets", href: "https://yilingmarket-onbase.vercel.app/" },
+  { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in markets. Use any LLM, any language, any strategy.", link: "Learn More", href: "/docs/getting-started/how-it-works" },
+  { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Create markets, submit predictions, and claim payouts directly.", link: "View Docs", href: "/docs/contracts/overview" },
 ];
 
 function Builders() {
@@ -881,9 +881,11 @@ function Builders() {
 
             <div className="space-y-4">
               {builderCards.map((p, i) => (
-                <motion.div key={p.title}
+                <motion.a key={p.title} href={p.href}
+                  target={p.href.startsWith("http") ? "_blank" : undefined}
+                  rel={p.href.startsWith("http") ? "noopener noreferrer" : undefined}
                   style={{ opacity: cardAnims[i].opacity, y: cardAnims[i].y }}
-                  className="group card p-6 hover:border-border-light transition-all duration-200">
+                  className="group card p-6 hover:border-border-light transition-all duration-200 block">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-2 border border-border group-hover:border-border-light transition-colors">
                       <p.icon className="w-5 h-5 text-text-secondary" />
@@ -896,7 +898,7 @@ function Builders() {
                       </span>
                     </div>
                   </div>
-                </motion.div>
+                </motion.a>
               ))}
             </div>
           </div>
