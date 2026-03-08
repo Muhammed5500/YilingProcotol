@@ -134,7 +134,7 @@ function Hero() {
             {[
               { value: "0", label: "Oracles Needed" },
               { value: "Base", label: "Network" },
-              { value: "100%", label: "Open Source" },
+              { value: "Harvard", label: "Research" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
                 <span className="font-heading font-bold text-2xl sm:text-3xl tracking-tight text-text">{stat.value}</span>
@@ -1193,7 +1193,7 @@ export default function Home() {
 
       <MarqueeBand items={[
         "ORACLE-FREE", "SELF-RESOLVING", "LIVE ON BASE", "GAME THEORY",
-        "SKC MECHANISM", "CROSS-ENTROPY", "OPEN SOURCE", "EVM COMPATIBLE",
+        "SKC MECHANISM", "CROSS-ENTROPY", "EVM COMPATIBLE",
         "PERMISSIONLESS", "PREDICTION MARKETS", "TRUTH LAYER"
       ]} />
 

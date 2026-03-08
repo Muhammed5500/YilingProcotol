@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Yiling Protocol — Live on Base",
   description:
-    "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Live on Base. Open source.",
+    "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Live on Base.",
 };
 
 export default function RootLayout({

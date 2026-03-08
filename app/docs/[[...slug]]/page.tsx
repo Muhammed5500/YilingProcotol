@@ -890,11 +890,10 @@ Built-in AI agent personas under development:
 - **Governance module** — Use Yiling for DAO decision-making
 - **Dispute resolution** — Integrate as an arbitration layer
 
-## Open Source
+## Get Involved
 
-The protocol is fully open source. Contributions welcome.
+Follow development and updates:
 
-- Smart contracts: [GitHub](https://github.com/Muhammed5500/YilingProcotol-landing-OnBase)
 - Landing page: [GitHub](https://github.com/Muhammed5500/YilingProcotol-landing-OnBase)`,
 };
 
