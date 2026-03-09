@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: "Yiling Protocol — Oracle-Free Prediction Markets",
   description:
     "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Live on Base & Monad.",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

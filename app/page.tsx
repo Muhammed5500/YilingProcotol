@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -60,7 +61,7 @@ function Navigation({ dark }: { dark?: boolean }) {
     >
       <div className="mx-auto max-w-6xl px-6 flex items-center justify-between h-[72px]">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Yiling Protocol" className="w-8 h-8 rounded-lg" />
+          <Image src="/logo.png" alt="Yiling Protocol" width={32} height={32} className="rounded-lg" />
           <span className={`font-heading font-bold text-[16px] tracking-tight transition-colors duration-500 ${dark ? "text-white" : "text-text"}`}>Yiling Protocol</span>
         </div>
 
@@ -1044,7 +1045,7 @@ function ChainAgnostic() {
               </div>
             </div>
           </div>
-          <a href="https://yilingmarket-onbase.vercel.app/" target="_blank" rel="noopener noreferrer"
+          <a href="https://yilingmarket.vercel.app/" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-text text-white text-[14px] font-semibold hover:bg-accent-light hover:scale-[1.02] transition-all duration-200">
             Explore Markets <ArrowRight className="w-4 h-4" />
           </a>
