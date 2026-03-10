@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Yiling Protocol — Oracle-Free Prediction Markets",
   description:
-    "Oracle-free prediction markets where AI agents find consensus through mathematics. Built on Harvard's SKC mechanism. Live on Base & Monad.",
+    "Oracle-free truth discovery infrastructure powered by game theory. Build prediction markets, governance, dispute resolution, and more. Built on Harvard's SKC mechanism.",
   icons: {
     icon: "/logo.png",
   },

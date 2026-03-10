@@ -71,7 +71,7 @@ function Navigation({ dark }: { dark?: boolean }) {
               {i}
             </a>
           ))}
-          <a href="#networks" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Markets</a>
+          <a href="#networks" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Networks</a>
           <a href="/docs/getting-started/overview" className={`transition-colors duration-200 ${dark ? "hover:text-white" : "hover:text-text"}`}>Docs</a>
         </div>
 
@@ -81,7 +81,7 @@ function Navigation({ dark }: { dark?: boolean }) {
             dark ? "bg-white text-[#0a0a0f] hover:bg-gray-200" : "bg-text text-white hover:bg-accent-light"
           }`}
         >
-          Explore Markets <ArrowRight className="w-3.5 h-3.5" />
+          Get Started <ArrowRight className="w-3.5 h-3.5" />
         </a>
       </div>
     </nav>
@@ -130,19 +130,19 @@ function Hero() {
           </motion.div>
 
           <motion.p variants={fadeUp} className="max-w-lg mx-auto text-[17px] text-text-secondary leading-relaxed">
-            Oracle-free prediction markets where truth emerges
-            from game theory. Chain-agnostic infrastructure for any EVM network.
+            Oracle-free truth discovery infrastructure powered by game theory.
+            Build prediction markets, governance systems, dispute resolution, and more.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <a href="#networks"
+            <a href="/docs/getting-started/overview"
               className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:bg-accent-light hover:scale-[1.02]">
-              Explore Live Markets
+              Explore Protocol
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
-            <a href="/docs/getting-started/overview"
+            <a href="#networks"
               className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
-              Build With Yiling <ArrowRight className="w-4 h-4" />
+              View Live Deployments <ArrowRight className="w-4 h-4" />
             </a>
           </motion.div>
 
@@ -201,8 +201,8 @@ function Problem() {
                 Oracles are the<br />single point of failure
               </h2>
               <p className="text-text-secondary text-[15px] leading-[1.75]">
-                Every prediction market today depends on an external oracle.
-                For subjective or long-horizon questions, no reliable oracle exists.
+                Every on-chain truth system today depends on an external oracle.
+                For subjective, long-horizon, or complex questions, no reliable oracle exists.
               </p>
               <div className="flex items-center gap-2 pt-1">
                 {["Oracle", "Trust", "Centralization"].map((item) => (
@@ -224,7 +224,7 @@ function Problem() {
                 The Solution
               </div>
               <h2 className="font-heading font-bold text-[26px] sm:text-[30px] leading-[1.15] tracking-tight">
-                The market resolves<br /><span className="text-text-secondary">itself</span>
+                Truth resolves<br /><span className="text-text-secondary">itself</span>
               </h2>
               <p className="text-text-secondary text-[15px] leading-[1.75]">
                 Yiling Protocol implements the <span className="text-text font-semibold">SKC mechanism</span> —
@@ -536,9 +536,9 @@ function HowItWorks({ onDarkChange }: { onDarkChange?: (dark: boolean) => void }
             {/* Mobile: stacked cards */}
             <div className="grid sm:grid-cols-2 lg:hidden gap-4">
               {[
-                { icon: Users, number: "01", title: "Create Market", description: "A creator deploys a question to the MarketFactory contract.", color: "#2563eb" },
+                { icon: Users, number: "01", title: "Ask a Question", description: "A creator deploys a question to the protocol. Any question, any topic.", color: "#2563eb" },
                 { icon: Brain, number: "02", title: "Agents Predict", description: "AI agents analyze and submit probability predictions with bonds.", color: "#7c3aed" },
-                { icon: Dices, number: "03", title: "Random Stop", description: "After each prediction, a dice rolls. If triggered, the market resolves.", color: "#171717" },
+                { icon: Dices, number: "03", title: "Random Stop", description: "After each prediction, a dice rolls. If triggered, the protocol resolves.", color: "#171717" },
                 { icon: TrendingUp, number: "04", title: "Truth & Payouts", description: "Cross-entropy scoring rewards accuracy. Truth emerges from math.", color: "#16a34a" },
               ].map((step) => (
                 <motion.div key={step.number} variants={fadeUp} className="rounded-2xl p-6 border transition-all duration-600"
@@ -714,10 +714,10 @@ function Mechanism() {
 
 const infraFeatures = [
   { icon: Brain, title: "Open Agent Framework", desc: "Plug in any agent — AI, human, or algorithmic. Define your own reasoning strategy with our SDK." },
-  { icon: Globe, title: "Multi-Chain", desc: "Deploy on any EVM chain. Currently live on Base and Monad with more networks coming soon." },
-  { icon: Zap, title: "Self-Resolving Markets", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
+  { icon: Globe, title: "Chain Agnostic", desc: "Not limited to any VM or chain. Deploy on any network — EVM, SVM, Move, or beyond. Currently live on Base and Monad." },
+  { icon: Zap, title: "Self-Resolving", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
   { icon: Code2, title: "Modular Smart Contracts", desc: "MarketFactory, PredictionMarket, and FixedPointMath — composable and auditable." },
-  { icon: Users, title: "Permissionless Participation", desc: "Anyone can create markets, build agents, or integrate the protocol. No gatekeepers." },
+  { icon: Users, title: "Permissionless", desc: "Anyone can deploy questions, build agents, or integrate the protocol. No gatekeepers." },
   { icon: LineChart, title: "Cross-Entropy Scoring", desc: "Mathematically proven incentive layer. Honest reporting is always the dominant strategy." },
 ];
 
@@ -863,9 +863,9 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Globe, title: "Live Markets", desc: "The full contract suite is deployed and running on Base & Monad. Explore live markets or build on top.", link: "View Markets", href: "#networks" },
-  { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in markets. Use any LLM, any language, any strategy.", link: "Learn More", href: "/docs/getting-started/how-it-works" },
-  { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Create markets, submit predictions, and claim payouts directly.", link: "View Docs", href: "/docs/contracts/overview" },
+  { icon: Globe, title: "Live Deployments", desc: "The full contract suite is deployed and running on Base & Monad. Explore or build on top.", link: "View Networks", href: "#networks" },
+  { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in the protocol. Use any LLM, any language, any strategy.", link: "Learn More", href: "/docs/getting-started/how-it-works" },
+  { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Deploy questions, submit predictions, and claim payouts directly.", link: "View Docs", href: "/docs/contracts/overview" },
 ];
 
 function Builders() {
@@ -887,7 +887,7 @@ function Builders() {
           <div className="text-center space-y-4 mb-16">
             <p className="text-orange text-[12px] font-semibold tracking-[0.2em] uppercase">Developers</p>
             <h2 className="font-heading font-bold text-[30px] sm:text-[38px] md:text-[44px] tracking-tight">Built for Builders</h2>
-            <p className="text-text-secondary text-[16px] max-w-md mx-auto">Explore live markets, connect agents, or build on top</p>
+            <p className="text-text-secondary text-[16px] max-w-md mx-auto">Integrate the protocol, connect agents, or deploy on your own chain</p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
@@ -1010,7 +1010,7 @@ function ChainAgnostic() {
         <motion.div initial="hidden" whileInView="visible" viewport={{ once: false, margin: "-80px" }} variants={stagger} className="space-y-4 mb-14">
           <motion.p variants={fadeUp} className="text-text-muted text-[12px] font-semibold tracking-[0.2em] uppercase">Networks</motion.p>
           <motion.h2 variants={fadeUp} className="font-heading font-bold text-[30px] sm:text-[38px] md:text-[44px] tracking-tight">Chain-Agnostic Infrastructure</motion.h2>
-          <motion.p variants={fadeUp} className="text-text-secondary text-[16px]">One protocol, multiple chains. Deploy prediction markets anywhere.</motion.p>
+          <motion.p variants={fadeUp} className="text-text-secondary text-[16px]">The SKC mechanism is pure math — it works on any chain, any VM. These are the first live deployments.</motion.p>
         </motion.div>
 
         {/* Active chains — unified */}
@@ -1047,16 +1047,16 @@ function ChainAgnostic() {
           </div>
           <a href="https://yilingmarket.vercel.app/" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-text text-white text-[14px] font-semibold hover:bg-accent-light hover:scale-[1.02] transition-all duration-200">
-            Explore Markets <ArrowRight className="w-4 h-4" />
+            View Live Product <ArrowRight className="w-4 h-4" />
           </a>
         </motion.div>
 
         {/* Why multi-chain cards */}
         <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto mb-8">
           {[
-            { title: "EVM Compatible", desc: "Deploy on any EVM chain with the same Solidity contracts" },
-            { title: "One-Line Deploy", desc: "Same contract suite, different RPC — deploy in seconds" },
-            { title: "Growing Network", desc: "More chains coming soon as the protocol expands" },
+            { title: "Any Chain, Any VM", desc: "EVM, SVM, Move, CosmWasm — the protocol adapts to any execution environment" },
+            { title: "Math, Not Middleware", desc: "The SKC mechanism is a mathematical primitive — no chain-specific dependencies" },
+            { title: "Growing Network", desc: "First live on Base & Monad, with more chains and VMs coming soon" },
           ].map((item) => (
             <motion.div key={item.title} initial="hidden" whileInView="visible" viewport={{ once: false }} variants={fadeUp}
               className="card p-5 text-left">
@@ -1066,7 +1066,7 @@ function ChainAgnostic() {
           ))}
         </div>
 
-        <p className="text-text-muted text-[13px]">Any EVM chain · Same contracts · Permissionless deployment</p>
+        <p className="text-text-muted text-[13px]">Any chain · Any VM · Permissionless deployment</p>
       </div>
     </section>
   );
@@ -1082,16 +1082,16 @@ function CTA() {
           className="card p-14 text-center border-border-light">
           <div className="space-y-7">
             <motion.h2 variants={fadeUp} className="font-heading font-bold text-[30px] sm:text-[40px] tracking-tight">
-              Ready to explore<br />
-              <span className="text-text-secondary">oracle-free markets?</span>
+              Ready to build with<br />
+              <span className="text-text-secondary">self-resolving truth?</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-text-secondary text-[16px] max-w-md mx-auto leading-relaxed">
-              Yiling Protocol is live on Base & Monad. Explore prediction markets that resolve themselves through game theory.
+              Yiling Protocol is live on Base & Monad. A general-purpose truth discovery primitive — ready for your use case.
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <a href="#networks"
+              <a href="/docs/getting-started/overview"
                 className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:brightness-110 hover:scale-[1.02]">
-                Explore Live Markets <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                Start Building <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
               <a href="https://github.com/Muhammed5500/YilingProcotol-landing-OnBase" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
@@ -1192,7 +1192,7 @@ function Footer() {
               </div>
               <span className="font-heading font-bold text-[17px] text-text">Yiling Protocol</span>
             </div>
-            <p className="text-text-muted text-[14px] leading-[1.8] max-w-sm">Oracle-free prediction markets on any chain. Built on Harvard&apos;s SKC mechanism.</p>
+            <p className="text-text-muted text-[14px] leading-[1.8] max-w-sm">Oracle-free truth discovery infrastructure for any chain. Built on Harvard&apos;s SKC mechanism.</p>
             <div className="flex items-center gap-3">
               <a href="https://github.com/Muhammed5500/YilingProcotol-landing-OnBase" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
                 <Github className="w-4.5 h-4.5" />
@@ -1227,8 +1227,8 @@ export default function Home() {
 
       <MarqueeBand items={[
         "ORACLE-FREE", "SELF-RESOLVING", "MULTI-CHAIN", "GAME THEORY",
-        "SKC MECHANISM", "CROSS-ENTROPY", "EVM COMPATIBLE",
-        "PERMISSIONLESS", "PREDICTION MARKETS", "TRUTH LAYER"
+        "SKC MECHANISM", "CROSS-ENTROPY", "CHAIN AGNOSTIC",
+        "PERMISSIONLESS", "TRUTH DISCOVERY", "TRUTH LAYER"
       ]} />
 
       <Problem />
