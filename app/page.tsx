@@ -92,14 +92,47 @@ function Navigation({ dark }: { dark?: boolean }) {
 
 function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center pt-20 pb-16">
+    <section className="relative min-h-[90vh] flex items-center justify-center pt-36 pb-16">
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-8">
-          <motion.h1 variants={fadeUp} className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1]">
-            <span className="text-text">Verifying the</span>
-            <br />
-            <span className="text-text-secondary">Unverifiable</span>
-          </motion.h1>
+          <motion.div variants={fadeUp} className="flex flex-col items-center gap-3">
+            {/* "Verifying" */}
+            <motion.span
+              initial={{ opacity: 0, y: -15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1] text-text/80"
+            >
+              Verifying
+            </motion.span>
+
+            {/* ——— the ——— */}
+            <motion.div
+              initial={{ opacity: 0, scaleX: 0 }}
+              animate={{ opacity: 1, scaleX: 1 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="flex items-center gap-4"
+            >
+              <span className="h-[1px] w-12 sm:w-20 bg-text-muted/40" />
+              <span className="font-heading text-text-muted text-[14px] sm:text-[16px] md:text-[18px] tracking-[0.3em] uppercase font-medium">the</span>
+              <span className="h-[1px] w-12 sm:w-20 bg-text-muted/40" />
+            </motion.div>
+
+            {/* "Unverifiable" slides in from right with delay, animated gradient */}
+            <motion.h1
+              initial={{ opacity: 0, x: 80 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, delay: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1] bg-clip-text text-transparent"
+              style={{
+                backgroundImage: "linear-gradient(90deg, #ffffff, #8100D1, #171717, #8100D1, #ffffff)",
+                backgroundSize: "200% 100%",
+                animation: "gradient-flow 4s linear infinite",
+              }}
+            >
+              Unverifiable
+            </motion.h1>
+          </motion.div>
 
           <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pt-2">
             <div className="flex items-center justify-center gap-3">
@@ -132,7 +165,7 @@ function Hero() {
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <a href="/docs/getting-started/overview"
-              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:bg-accent-light hover:scale-[1.02]">
+              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-transparent border border-text text-text text-[15px] font-semibold transition-all duration-200 hover:bg-text/5 hover:scale-[1.02]">
               Explore Protocol
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
@@ -734,7 +767,7 @@ function Infrastructure() {
               <div key={col} className="flex-1 flex flex-col gap-5" style={{ transform: col === 1 ? "translateY(48px)" : undefined }}>
                 {infraFeatures.filter((_, i) => i % 3 === col).map((feature) => (
                   <motion.div key={feature.title} variants={fadeUp}
-                    className="relative rounded-2xl border border-dashed border-orange/30 p-6 flex flex-col justify-between min-h-[260px] overflow-hidden group transition-all duration-300 hover:border-orange/50">
+                    className="relative rounded-2xl border border-dashed border-orange/30 p-6 flex flex-col justify-between min-h-[260px] overflow-hidden group transition-all duration-300 hover:border-orange hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(129,0,209,0.15)] cursor-default">
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-orange/10 rounded-2xl pointer-events-none" />
                     <div className="relative z-10">
                       <feature.icon className="w-5 h-5 text-orange/70 mb-4" />
@@ -750,7 +783,7 @@ function Infrastructure() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:hidden">
             {infraFeatures.map((feature) => (
               <motion.div key={feature.title} variants={fadeUp}
-                className="relative rounded-2xl border border-dashed border-orange/30 p-6 flex flex-col justify-between min-h-[220px] overflow-hidden group transition-all duration-300 hover:border-orange/50">
+                className="relative rounded-2xl border border-dashed border-orange/30 p-6 flex flex-col justify-between min-h-[220px] overflow-hidden group transition-all duration-300 hover:border-orange hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(129,0,209,0.15)] cursor-default">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-orange/10 rounded-2xl pointer-events-none" />
                 <div className="relative z-10">
                   <feature.icon className="w-5 h-5 text-orange/70 mb-4" />
@@ -1027,7 +1060,7 @@ function ChainAgnostic() {
             </div>
           </div>
           <a href="https://yilingmarket.vercel.app/" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-text text-white text-[14px] font-semibold hover:bg-accent-light hover:scale-[1.02] transition-all duration-200">
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-transparent border border-[#8100D1] text-[#8100D1] text-[14px] font-semibold hover:bg-[#8100D1]/10 hover:scale-[1.02] transition-all duration-200">
             View Live Product <ArrowRight className="w-4 h-4" />
           </a>
         </motion.div>
