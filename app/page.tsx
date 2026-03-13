@@ -320,7 +320,7 @@ function SchematicDiagram() {
   const green = "#3fb950";
 
   // Layout: SVG viewBox 1100 x 520
-  // Row 1 (y=40):  Inputs(col) → pipe → Factory → pipe → Market → pipe → RandomStop
+  // Row 1 (y=40):  Inputs(col) → pipe → Factory → pipe → Engine → pipe → RandomStop
   // Row 2 (y=310): Payouts ← pipe ← Truth ← pipe ← SKC ← pipe ← FixedPointMath
   // Vertical pipe connecting RandomStop → FixedPointMath
 
@@ -360,19 +360,19 @@ function SchematicDiagram() {
             {/* Pipe: inputs → Factory */}
             <Pipe x1={220} y1={130} x2={310} y2={130} color={orange} />
 
-            {/* Market Factory */}
-            <SchematicBox x={320} y={90} w={175} h={80} label="MARKET FACTORY" sublabel="Deploys & configures markets" number="04" color={blue} icon="&#9881;" />
+            {/* Query Factory */}
+            <SchematicBox x={320} y={90} w={175} h={80} label="QUERY FACTORY" sublabel="Deploys & configures instances" number="04" color={blue} icon="&#9881;" />
 
-            {/* Pipe: Factory → Market */}
+            {/* Pipe: Factory → Truth Engine */}
             <Pipe x1={495} y1={130} x2={565} y2={130} color={purple} />
 
-            {/* Prediction Market — larger, main component */}
-            <SchematicBox x={575} y={80} w={190} h={100} label="PREDICTION MARKET" sublabel="Collects predictions with bonds" number="05" color={purple} icon="&#9670;" />
+            {/* Report Engine — larger, main component */}
+            <SchematicBox x={575} y={80} w={190} h={100} label="REPORT ENGINE" sublabel="Collects reports backed by bonds" number="05" color={purple} icon="&#9670;" />
             {/* Internal detail lines */}
             <line x1={590} y1={145} x2={750} y2={145} stroke={`${purple}20`} strokeWidth="0.5" strokeDasharray="4 3" />
             <line x1={590} y1={160} x2={750} y2={160} stroke={`${purple}15`} strokeWidth="0.5" strokeDasharray="4 3" />
 
-            {/* Pipe: Market → Random Stop */}
+            {/* Pipe: Truth Engine → Random Stop */}
             <Pipe x1={765} y1={130} x2={840} y2={130} color={orange} />
 
             {/* Random Stop */}
@@ -449,16 +449,16 @@ function SchematicDiagram() {
             <polygon points="226,344 220,348 226,352" fill={`${blue}70`} />
 
             {/* Payouts */}
-            <SchematicBox x={30} y={310} w={180} h={75} label="PAYOUTS" sublabel="Rewards for accurate reporters" number="10" color={green} icon="&#9650;" />
+            <SchematicBox x={30} y={310} w={180} h={75} label="SETTLEMENT" sublabel="Rewards for accurate reporters" number="10" color={green} icon="&#9650;" />
 
             {/* ═══ ANIMATED FLOW DOTS ═══ */}
             {isInView && (
               <>
                 {/* Input → Factory */}
                 <FlowDot path="M220,130 L310,130" color={orange} duration={1.5} delay={0} />
-                {/* Factory → Market */}
+                {/* Factory → Engine */}
                 <FlowDot path="M495,130 L565,130" color={purple} duration={1.2} delay={0.5} />
-                {/* Market → Stop */}
+                {/* Engine → Stop */}
                 <FlowDot path="M765,130 L840,130" color={orange} duration={1.2} delay={1} />
                 {/* Vertical drop */}
                 <FlowDot path="M948,175 L948,310" color={green} duration={2} delay={1.5} />
@@ -476,7 +476,7 @@ function SchematicDiagram() {
             <text x={32} y={28} fill="#30363d" fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">YILING PROTOCOL — SYSTEM ARCHITECTURE</text>
             {/* Bottom flow indicator */}
             <text x={550} y={470} textAnchor="middle" fill="#30363d" fontSize="9" fontFamily="var(--font-mono)" letterSpacing="2">
-              INPUTS → FACTORY → MARKET → STOP → MATH → SKC → TRUTH → PAYOUTS
+              INPUTS → FACTORY → ENGINE → STOP → MATH → SKC → TRUTH → SETTLEMENT
             </text>
 
             {/* Row labels */}
@@ -536,10 +536,10 @@ function HowItWorks({ onDarkChange }: { onDarkChange?: (dark: boolean) => void }
             {/* Mobile: stacked cards */}
             <div className="grid sm:grid-cols-2 lg:hidden gap-4">
               {[
-                { icon: Users, number: "01", title: "Ask a Question", description: "A creator deploys a question to the protocol. Any question, any topic.", color: "#2563eb" },
-                { icon: Brain, number: "02", title: "Agents Predict", description: "AI agents analyze and submit probability predictions with bonds.", color: "#7c3aed" },
-                { icon: Dices, number: "03", title: "Random Stop", description: "After each prediction, a dice rolls. If triggered, the protocol resolves.", color: "#171717" },
-                { icon: TrendingUp, number: "04", title: "Truth & Payouts", description: "Cross-entropy scoring rewards accuracy. Truth emerges from math.", color: "#16a34a" },
+                { icon: Users, number: "01", title: "Submit a Query", description: "Any participant deploys a query to the protocol — subjective, objective, or philosophical.", color: "#2563eb" },
+                { icon: Brain, number: "02", title: "Agents Report", description: "AI agents analyze the query and submit probability reports backed by bonds.", color: "#7c3aed" },
+                { icon: Dices, number: "03", title: "Random Stop", description: "After each report, a dice rolls. If triggered, the protocol finalizes.", color: "#171717" },
+                { icon: TrendingUp, number: "04", title: "Truth & Settlement", description: "Cross-entropy scoring rewards accuracy. Truth emerges from game theory.", color: "#16a34a" },
               ].map((step) => (
                 <motion.div key={step.number} variants={fadeUp} className="rounded-2xl p-6 border transition-all duration-600"
                   animate={{
@@ -611,7 +611,7 @@ function PriceChart() {
   return (
     <div ref={chartRef} className="card p-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="text-text-muted text-[11px] uppercase tracking-[0.15em] font-semibold">Price Convergence</div>
+        <div className="text-text-muted text-[11px] uppercase tracking-[0.15em] font-semibold">Truth Convergence</div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2 border border-border">
           <span className="font-mono text-[14px] text-text font-bold">{currentVal.toFixed(2)}</span>
         </div>
