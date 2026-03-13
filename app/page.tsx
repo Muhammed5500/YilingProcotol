@@ -96,9 +96,9 @@ function Hero() {
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <motion.div initial="hidden" animate="visible" variants={stagger} className="space-y-8">
           <motion.h1 variants={fadeUp} className="font-heading font-extrabold text-[44px] sm:text-[56px] md:text-[72px] lg:text-[84px] tracking-[-0.03em] leading-[1]">
-            <span className="text-text">The Self-Resolving</span>
+            <span className="text-text">Verifying the</span>
             <br />
-            <span className="text-text-secondary">Truth Layer</span>
+            <span className="text-text-secondary">Unverifiable</span>
           </motion.h1>
 
           <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pt-2">
