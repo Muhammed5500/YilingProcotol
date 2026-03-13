@@ -103,12 +103,8 @@ function Hero() {
 
           <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pt-2">
             <div className="flex items-center justify-center gap-3">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/20 text-[#0052FF] text-[13px] font-semibold">
-                <span className="w-2 h-2 rounded-full bg-[#0052FF] animate-pulse" />
-                Base
-              </span>
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#836EF9]/10 border border-[#836EF9]/20 text-[#836EF9] text-[13px] font-semibold">
-                <span className="w-2 h-2 rounded-full bg-[#836EF9] animate-pulse" />
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8100D1]/10 border border-[#8100D1]/20 text-[#8100D1] text-[13px] font-semibold">
+                <span className="w-2 h-2 rounded-full bg-[#8100D1] animate-pulse" />
                 Monad
               </span>
             </div>
@@ -714,7 +710,7 @@ function Mechanism() {
 
 const infraFeatures = [
   { icon: Brain, title: "Open Agent Framework", desc: "Plug in any agent — AI, human, or algorithmic. Define your own reasoning strategy with our SDK." },
-  { icon: Globe, title: "Chain Agnostic", desc: "Not limited to any VM or chain. Deploy on any network — EVM, SVM, Move, or beyond. Currently live on Base and Monad." },
+  { icon: Globe, title: "Chain Agnostic", desc: "Not limited to any VM or chain. Deploy on any network — EVM, SVM, Move, or beyond. Natively built on Monad." },
   { icon: Zap, title: "Self-Resolving", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
   { icon: Code2, title: "Modular Smart Contracts", desc: "MarketFactory, PredictionMarket, and FixedPointMath — composable and auditable." },
   { icon: Users, title: "Permissionless", desc: "Anyone can deploy questions, build agents, or integrate the protocol. No gatekeepers." },
@@ -863,7 +859,7 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Globe, title: "Live Deployments", desc: "The full contract suite is deployed and running on Base & Monad. Explore or build on top.", link: "View Networks", href: "#networks" },
+  { icon: Globe, title: "Live Deployments", desc: "The full contract suite is deployed and running on Monad. Explore or build on top.", link: "View Networks", href: "#networks" },
   { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that participate in the protocol. Use any LLM, any language, any strategy.", link: "Learn More", href: "/docs/getting-started/how-it-works" },
   { icon: Cpu, title: "Smart Contracts", desc: "Fully on-chain SKC mechanism. Deploy questions, submit predictions, and claim payouts directly.", link: "View Docs", href: "/docs/contracts/overview" },
 ];
@@ -928,7 +924,6 @@ function Builders() {
 
 const chainLogos: Record<string, { color: string; icon: React.ReactNode }> = {
   Ethereum: { color: "#627EEA", icon: <path d="M12 1.5l-7 11.5L12 17l7-4L12 1.5zm-7 13L12 22.5l7-8L12 18.5 5 14.5z" fill="#627EEA"/> },
-  Base: { color: "#0052FF", icon: <><circle cx="12" cy="12" r="10" fill="#0052FF"/><path d="M12 6a6 6 0 100 12 6 6 0 000-12zm0 2a4 4 0 110 8V8z" fill="#fff"/></> },
   Arbitrum: { color: "#28A0F0", icon: <><path d="M12 2L2 19h20L12 2z" fill="none" stroke="#28A0F0" strokeWidth="1.5"/><path d="M12 7l5 9H7l5-9z" fill="#28A0F0"/></> },
   Solana: { color: "#9945FF", icon: <><path d="M4 17h14l2-2H6l-2 2zm0-5h14l2-2H6l-2 2zm16-3H6l-2-2h14l2 2z" fill="#9945FF"/></> },
   Polygon: { color: "#8247E5", icon: <path d="M16 8l-4-2.5L8 8l-4-2.5v9L8 17l4-2.5L16 17l4-2.5v-9L16 8zm-4 6.5L8 12V9l4 2.5 4-2.5v3l-4 2.5z" fill="#8247E5"/> },
@@ -964,7 +959,7 @@ const chainLogos: Record<string, { color: string; icon: React.ReactNode }> = {
 };
 
 const chainRow1 = [
-  "Ethereum", "Base", "Arbitrum", "Solana", "Polygon", "Sui",
+  "Ethereum", "Arbitrum", "Solana", "Polygon", "Sui",
   "Optimism", "Avalanche", "Monad", "Starknet", "zkSync", "Near",
   "Cosmos", "Fantom", "Celo", "Tron", "Hedera",
 ];
@@ -1019,20 +1014,6 @@ function ChainAgnostic() {
           <div className="flex items-center justify-center gap-6 mb-5">
             <div className="flex items-center gap-3">
               <svg viewBox="0 0 24 24" className="w-10 h-10">
-                <circle cx="12" cy="12" r="10" fill="#0052FF"/>
-                <path d="M12 6a6 6 0 100 12 6 6 0 000-12zm0 2a4 4 0 110 8V8z" fill="#fff"/>
-              </svg>
-              <div className="text-left">
-                <h3 className="font-heading font-bold text-[17px] text-text">Base</h3>
-                <p className="text-[#0052FF] text-[11px] font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0052FF] animate-pulse" />
-                  Live
-                </p>
-              </div>
-            </div>
-            <span className="text-text-muted text-[20px]">·</span>
-            <div className="flex items-center gap-3">
-              <svg viewBox="0 0 24 24" className="w-10 h-10">
                 <circle cx="12" cy="12" r="10" fill="#836EF9"/>
                 <text x="12" y="16" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="bold">M</text>
               </svg>
@@ -1056,7 +1037,7 @@ function ChainAgnostic() {
           {[
             { title: "Any Chain, Any VM", desc: "EVM, SVM, Move, CosmWasm — the protocol adapts to any execution environment" },
             { title: "Math, Not Middleware", desc: "The SKC mechanism is a mathematical primitive — no chain-specific dependencies" },
-            { title: "Growing Network", desc: "First live on Base & Monad, with more chains and VMs coming soon" },
+            { title: "Growing Network", desc: "Natively built on Monad, with more chains and VMs coming soon" },
           ].map((item) => (
             <motion.div key={item.title} initial="hidden" whileInView="visible" viewport={{ once: false }} variants={fadeUp}
               className="card p-5 text-left">
@@ -1086,14 +1067,14 @@ function CTA() {
               <span className="text-text-secondary">self-resolving truth?</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-text-secondary text-[16px] max-w-md mx-auto leading-relaxed">
-              Yiling Protocol is live on Base & Monad. A general-purpose truth discovery primitive — ready for your use case.
+              Yiling Protocol is live on Monad. A general-purpose truth discovery primitive — ready for your use case.
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <a href="/docs/getting-started/overview"
                 className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:brightness-110 hover:scale-[1.02]">
                 Start Building <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
-              <a href="https://github.com/Muhammed5500/YilingProcotol-landing-OnBase" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/Muhammed5500/YilingProcotol" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
                 <Github className="w-4 h-4" /> View on GitHub
               </a>
@@ -1194,7 +1175,7 @@ function Footer() {
             </div>
             <p className="text-text-muted text-[14px] leading-[1.8] max-w-sm">Oracle-free truth discovery infrastructure for any chain. Built on Harvard&apos;s SKC mechanism.</p>
             <div className="flex items-center gap-3">
-              <a href="https://github.com/Muhammed5500/YilingProcotol-landing-OnBase" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
+              <a href="https://github.com/Muhammed5500/YilingProcotol" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
                 <Github className="w-4.5 h-4.5" />
               </a>
               <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">

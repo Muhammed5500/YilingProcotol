@@ -1,4 +1,4 @@
-# Yiling Protocol — Live on Base
+# Yiling Protocol — Live on Monad
 
 Oracle-free, self-resolving prediction markets powered by game theory. Built on Harvard's SKC mechanism.
 
@@ -8,8 +8,8 @@ Yiling Protocol is a truth discovery infrastructure that eliminates oracle depen
 
 ## Live
 
-- **Network:** Base
-- **Markets:** [Explore Live Markets](https://yilingmarket-onbase.vercel.app/markets)
+- **Network:** Monad
+- **Markets:** [Explore Live Markets](https://yilingmarket.vercel.app/markets)
 - **Docs:** [Documentation](https://yiling-protocol-landing.vercel.app/docs/getting-started/overview)
 
 ## Tech Stack

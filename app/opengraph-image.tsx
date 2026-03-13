@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Yiling Protocol — Oracle-Free Prediction Markets Live on Base";
+export const alt = "Yiling Protocol — Oracle-Free Truth Discovery Infrastructure Live on Monad";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,7 +28,7 @@ export default async function Image() {
             left: 0,
             right: 0,
             height: 6,
-            background: "linear-gradient(90deg, #ea580c, #0052FF)",
+            background: "linear-gradient(90deg, #8100D1, #8100D1)",
           }}
         />
 
@@ -41,7 +41,7 @@ export default async function Image() {
             width: 80,
             height: 80,
             borderRadius: 20,
-            backgroundColor: "#ea580c",
+            backgroundColor: "#8100D1",
             marginBottom: 32,
           }}
         >
@@ -90,7 +90,7 @@ export default async function Image() {
           Oracle-Free Prediction Markets
         </div>
 
-        {/* Base badge */}
+        {/* Monad badge */}
         <div
           style={{
             display: "flex",
@@ -98,20 +98,13 @@ export default async function Image() {
             gap: 10,
             padding: "10px 24px",
             borderRadius: 999,
-            backgroundColor: "#0052FF",
+            backgroundColor: "#8100D1",
             color: "white",
             fontSize: 20,
             fontWeight: 600,
           }}
         >
-          <svg viewBox="0 0 24 24" width="24" height="24">
-            <circle cx="12" cy="12" r="10" fill="white" />
-            <path
-              d="M12 6a6 6 0 100 12 6 6 0 000-12zm0 2a4 4 0 110 8V8z"
-              fill="#0052FF"
-            />
-          </svg>
-          Live on Base
+          Live on Monad
         </div>
 
         {/* Bottom tagline */}

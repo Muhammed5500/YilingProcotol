@@ -77,7 +77,6 @@ const docsTree = [
     title: "Networks",
     icon: Globe,
     items: [
-      { slug: "networks/base", title: "Base" },
       { slug: "networks/monad", title: "Monad" },
     ],
   },
@@ -100,16 +99,16 @@ const docsContent: Record<string, string> = {
 
 ## What is Yiling?
 
-Yiling is an **oracle-free prediction market protocol** — and also a live product. We run our own prediction markets on Base and Monad, and the same infrastructure is open for anyone to build on.
+Yiling is an **oracle-free prediction market protocol** — and also a live product. We run our own prediction markets on Monad, and the same infrastructure is open for anyone to build on.
 
 Based on [peer-reviewed research](https://arxiv.org/abs/2306.04305) from Harvard (published at ACM EC 2025), the protocol implements the SKC mechanism — a mathematically proven system where truth emerges from game theory, not external oracles.
 
 ## Two Ways to Use Yiling
 
 ### 1. Trade on Our Markets
-Yiling runs live prediction markets on **Base** and **Monad**. You can explore markets, submit your predictions, and earn rewards for accuracy — no oracle needed.
+Yiling runs live prediction markets on **Monad**. You can explore markets, submit your predictions, and earn rewards for accuracy — no oracle needed.
 
-→ [Explore Markets](https://yilingmarket-onbase.vercel.app/)
+→ [Explore Markets](https://yilingmarket.vercel.app/)
 
 ### 2. Build Your Own
 The same infrastructure powering our markets is available for you to build on. Create your own prediction markets, governance systems, dispute resolution, or anything that needs decentralized truth discovery.
@@ -126,7 +125,7 @@ Yiling removes the oracle entirely:
 - **Truthful equilibrium** — honest reporting is a Perfect Bayesian Equilibrium
 - **Cross-entropy scoring** — earn rewards proportional to your accuracy
 - **Bond-based** — every prediction requires a deposit, creating skin in the game
-- **Live now** — deployed on Base and Monad with low gas fees`,
+- **Live now** — deployed on Monad with low gas fees`,
 
   "getting-started/how-it-works": `# How It Works
 
@@ -163,7 +162,7 @@ Anyone. Yiling markets are permissionless:
 \`\`\`
 ┌─────────────────────────────────────────────────┐
 │              YILING MARKETS (our app)            │
-│     yilingmarket-onbase.vercel.app                │
+│     yilingmarket.vercel.app                │
 └───────────────────┬─────────────────────────────┘
                     │
         ┌───────────┼───────────┐
@@ -176,7 +175,7 @@ Anyone. Yiling markets are permissionless:
         └───────────┬───────────┘
                     │
            ┌────────▼────────┐
-           │  Base · Monad   │
+           │     Monad       │
            └─────────────────┘
 \`\`\``,
 
@@ -190,7 +189,7 @@ Yiling runs live prediction markets on multiple chains. Browse open markets, see
 
 | Chain | Status | Link |
 |-------|--------|------|
-| **Base & Monad** | ✅ Live | [yilingmarket-onbase.vercel.app](https://yilingmarket-onbase.vercel.app/) |
+| **Monad** | ✅ Live | [yilingmarket.vercel.app](https://yilingmarket.vercel.app/) |
 
 ## What You'll Find
 
@@ -218,14 +217,14 @@ Step-by-step guide to participating in Yiling prediction markets.
 ## Requirements
 
 - A wallet (MetaMask, Coinbase Wallet, etc.)
-- ETH on Base (for gas + bond)
+- MON on Monad (for gas + bond)
 - That's it — no signup, no KYC
 
 ## Steps
 
 ### 1. Connect Your Wallet
 
-Go to [yilingmarket-onbase.vercel.app](https://yilingmarket-onbase.vercel.app/) and connect your wallet. Select your network (Base or Monad) from the app.
+Go to [yilingmarket.vercel.app](https://yilingmarket.vercel.app/) and connect your wallet. Connect your wallet to Monad Testnet.
 
 ### 2. Browse Markets
 
@@ -327,7 +326,7 @@ Yiling Protocol is the same infrastructure we use for our own prediction markets
 
 - **Oracle-free resolution** — no dependency on Chainlink, UMA, or any external oracle
 - **Mathematically proven** — SKC mechanism based on [peer-reviewed Harvard research](https://arxiv.org/abs/2306.04305)
-- **Battle-tested** — the same contracts power our live markets on Base and Monad
+- **Battle-tested** — the same contracts power our live markets on Monad
 - **EVM-compatible** — deploy on any EVM chain
 - **Permissionless** — no API keys, no approval needed
 
@@ -360,11 +359,11 @@ Your application calls Yiling contracts to create markets and resolve questions.
 └──────────┬──────────┘
            │
     ┌──────▼──────┐
-    │  Base/Monad │
+    │    Monad    │
     └─────────────┘
 \`\`\`
 
-## Gas Costs (Base)
+## Gas Costs (Monad)
 
 | Function | Gas | Approx Cost |
 |----------|-----|-------------|
@@ -383,7 +382,7 @@ How to integrate Yiling Protocol into your application.
 \`\`\`javascript
 import { ethers } from "ethers";
 
-const provider = new ethers.JsonRpcProvider("https://mainnet.base.org");
+const provider = new ethers.JsonRpcProvider("https://testnet-rpc.monad.xyz");
 const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 \`\`\`
 
@@ -424,7 +423,7 @@ await contract.claimPayout(0);
 
 \`\`\`bash
 export CONTRACT=YOUR_CONTRACT_ADDRESS
-export RPC=https://mainnet.base.org
+export RPC=https://testnet-rpc.monad.xyz
 
 # Read market count
 cast call $CONTRACT "getMarketCount()" --rpc-url $RPC
@@ -439,7 +438,7 @@ cast send $CONTRACT "predict(uint256,uint256)" 0 720000000000000000 \\
 \`\`\`python
 from web3 import Web3
 
-w3 = Web3(Web3.HTTPProvider("https://mainnet.base.org"))
+w3 = Web3(Web3.HTTPProvider("https://testnet-rpc.monad.xyz"))
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=abi)
 
 count = contract.functions.getMarketCount().call()
@@ -456,7 +455,7 @@ info = contract.functions.getMarketInfo(0).call()
 
   "build/contracts": `# Contract Reference
 
-Core contracts deployed on Base and Monad.
+Core contracts deployed on Monad.
 
 ## Contract Overview
 
@@ -616,7 +615,7 @@ Create market → Agents submit predictions → Random stop check
 | Resolution | External oracle | Self-resolving (SKC) |
 | Oracle manipulation | Possible (UMA 2025) | Impossible — no oracle |
 | Subjective questions | Limited | Native support |
-| Deployment | Centralized | Permissionless on Base |
+| Deployment | Centralized | Permissionless on Monad |
 | Truthfulness | Not guaranteed | Perfect Bayesian Equilibrium |
 
 ## Best For
@@ -789,7 +788,7 @@ Yiling Protocol acts as a **subjective oracle primitive**. Any smart contract ca
                     └──────────┬──────────┘
                                │
                          ┌─────▼─────┐
-                         │   BASE    │
+                         │   MONAD   │
                          └───────────┘
 \`\`\`
 
@@ -975,42 +974,6 @@ The paper addresses prediction markets for outcomes that cannot be directly veri
 
   // ── NETWORKS ──────────────────────────────────────────────────────────────
 
-  "networks/base": `# Base
-
-Yiling is live on **Base** — Coinbase's Layer 2 network built on the OP Stack.
-
-## Live Markets
-
-Explore and participate in active prediction markets:
-
-**→ [yilingmarket-onbase.vercel.app](https://yilingmarket-onbase.vercel.app/)** (Base & Monad)
-
-## Why Base
-
-| Feature | Benefit |
-|---------|---------|
-| **Low Gas Fees** | Predictions cost fractions of a cent |
-| **Fast Finality** | ~2 second block times |
-| **Ethereum Security** | Inherits L1 security through optimistic rollup |
-| **EVM Compatible** | Full Solidity support |
-| **Growing Ecosystem** | Part of the largest onchain economy |
-
-## Network Details
-
-| Property | Mainnet | Testnet (Sepolia) |
-|----------|---------|-------------------|
-| Chain ID | 8453 | 84532 |
-| RPC | \`https://mainnet.base.org\` | \`https://sepolia.base.org\` |
-| Explorer | [basescan.org](https://basescan.org) | [sepolia.basescan.org](https://sepolia.basescan.org) |
-| Gas Token | ETH | ETH |
-
-## Deployed Contracts
-
-| Contract | Status | Explorer |
-|----------|--------|----------|
-| PredictionMarket | ✅ Live | [View on BaseScan](https://basescan.org) |
-| MarketFactory | ✅ Live | [View on BaseScan](https://basescan.org) |`,
-
   "networks/monad": `# Monad
 
 Yiling is expanding to **Monad** — a high-performance EVM-compatible L1 with parallel execution.
@@ -1029,21 +992,20 @@ Yiling is expanding to **Monad** — a high-performance EVM-compatible L1 with p
 
 Monad deployment is live. Markets are being onboarded.
 
-## Same Contracts, Different Chain
+## Same Contracts, Native Deployment
 
-Yiling's contracts are fully EVM-compatible. The same PredictionMarket, MarketFactory, and FixedPointMath contracts deployed on Base work on Monad without any modifications.`,
+The contracts are deployed natively on Monad. PredictionMarket, MarketFactory, and FixedPointMath are fully EVM-compatible and run without any modifications.`,
 
   // ── ROADMAP ──────────────────────────────────────────────────────────────
 
   "roadmap/coming-soon": `# Coming Soon
 
-Yiling is live on Base and Monad. Here's what's next.
+Yiling is live on Monad. Here's what's next.
 
 ## Multi-Chain Expansion
 
 | Chain | Status |
 |-------|--------|
-| **Base** | ✅ Live |
 | **Monad** | ✅ Live |
 | Arbitrum | Planned |
 | Optimism | Planned |

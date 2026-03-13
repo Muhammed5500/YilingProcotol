@@ -54,12 +54,11 @@ The contracts are standard Solidity 0.8.24 with no chain-specific dependencies. 
 
 | Chain | RPC URL | Notes |
 |-------|---------|-------|
+| Monad | `https://testnet-rpc.monad.xyz` | Primary deployment chain |
 | Ethereum | `https://eth.llamarpc.com` | Higher gas costs |
-| Base | `https://mainnet.base.org` | Low gas, fast finality |
 | Arbitrum | `https://arb1.arbitrum.io/rpc` | Low gas |
 | Polygon | `https://polygon-rpc.com` | Low gas |
 | Optimism | `https://mainnet.optimism.io` | Low gas |
-| Monad Testnet | `https://testnet-rpc.monad.xyz` | Testnet only |
 
 For non-EVM chains (Solana, Sui, etc.), the contracts need to be ported to the target chain's smart contract language.
 
