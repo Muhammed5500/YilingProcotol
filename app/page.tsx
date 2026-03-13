@@ -145,7 +145,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-12 pt-10">
             {[
               { value: "0", label: "Oracles Needed" },
-              { value: "2", label: "Live Chains" },
+              { value: "∞", label: "Chains Supported" },
               { value: "Game", label: "Theory" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
