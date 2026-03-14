@@ -62,6 +62,7 @@ const docsTree = [
       { slug: "use-cases/dispute-resolution", title: "Dispute Resolution" },
       { slug: "use-cases/data-labeling", title: "Data Labeling & AI" },
       { slug: "use-cases/subjective-oracles", title: "Subjective Oracles" },
+      { slug: "use-cases/community-notes", title: "Community Notes" },
     ],
   },
   {
@@ -339,6 +340,7 @@ Yiling Protocol is the same infrastructure we use for our own prediction markets
 | **Dispute Resolution** | Decentralized arbitration without trusted judges |
 | **Data Labeling** | Incentivize honest labeling for AI training |
 | **Subjective Oracles** | On-chain oracle for questions no data feed can answer |
+| **Community Notes** | Decentralized content verification — no central moderator, mathematical guarantees |
 | **Insurance** | Decentralized claims assessment |
 
 ## Architecture
@@ -807,6 +809,124 @@ Yiling Protocol acts as a **subjective oracle primitive**. Any smart contract ca
 - **Subjective on-chain decisions** that no data feed can answer
 - **Complementing existing oracles** — use Chainlink for prices, Yiling for everything else
 - **Cross-protocol resolution** — multiple dApps can share Yiling as their subjective oracle`,
+
+  "use-cases/community-notes": `# Community Notes
+
+Decentralized content verification without centralized moderators or platform-controlled algorithms. A game-theoretically optimal alternative to systems like X's Community Notes.
+
+## The Problem
+
+Platforms like X (formerly Twitter) introduced Community Notes — a crowdsourced system where users add context to potentially misleading posts. It's a step in the right direction, but it has fundamental weaknesses:
+
+- **No financial incentive** — participation is purely voluntary, leading to low and inconsistent coverage
+- **Sybil vulnerable** — fake or coordinated accounts can manipulate votes to suppress or promote notes
+- **Centralized algorithm** — the "bridging" algorithm runs on X's servers; the platform ultimately controls what gets shown
+- **Subjective claims fail** — when a claim has no objectively verifiable answer, note writers are guessing just like everyone else
+
+The core issue: Community Notes tries to find truth without a truth-finding mechanism. It relies on goodwill and a proprietary algorithm instead of mathematical guarantees.
+
+## How Yiling Solves This
+
+Any content verification question becomes a Yiling market:
+
+\`\`\`
+Content flagged as potentially misleading
+        ↓
+Market created: "Is this content misleading?"
+        ↓
+Reporters stake bonds and submit probability estimates
+   Agent A: 85% misleading (bond: 0.1 MON)
+   Agent B: 20% misleading (bond: 0.1 MON)
+   Agent C: 78% misleading (bond: 0.1 MON)
+        ↓
+Random stop triggers → SKC scoring kicks in
+        ↓
+Honest reporters rewarded, manipulators lose bonds
+        ↓
+If consensus > threshold → "Community finds this misleading"
+\`\`\`
+
+The SKC mechanism guarantees that every participant's dominant strategy is honest reporting. Manipulation isn't just difficult — it's mathematically irrational.
+
+## Verification Modes
+
+**Binary Verification**
+> "Is this post misleading?"
+
+A single market with probability output. If the final consensus exceeds a threshold (e.g., 75%), the content is flagged with a community note.
+
+**Context Notes**
+> "Is this statistic taken out of context?"
+
+Participants submit both a probability and reasoning. The highest-scoring agent's reasoning is displayed as the contextual note — rewarding not just accuracy but explanation quality.
+
+**Multi-Claim Verification**
+> A post contains 3 separate claims
+
+Each claim gets its own market. Results are displayed per-claim:
+- Claim 1: ✓ Accurate (consensus: 12% misleading)
+- Claim 2: ✗ Misleading (consensus: 89% misleading)
+- Claim 3: ~ Uncertain (consensus: 52% misleading)
+
+## Comparison
+
+| Feature | X Community Notes | Yiling Community Notes |
+|---------|-------------------|------------------------|
+| Incentive | Volunteer goodwill | Financial — bond at stake |
+| Sybil resistance | Account reputation | Bond-based — each vote costs money |
+| Manipulation | Bridging algorithm (proprietary) | SKC mechanism (mathematical proof) |
+| Infrastructure | X's centralized servers | On-chain, fully transparent |
+| Subjective claims | No mechanism | Designed specifically for this |
+| Speed | Hours to days | AI agents respond in seconds |
+| Governance | Platform decides | No central authority |
+| Auditability | Opaque | Every prediction on-chain |
+
+## AI + Human Hybrid
+
+The most powerful configuration combines both:
+
+**Layer 1 — AI Agents (instant response)**
+When content is flagged, AI agents analyze it immediately. Within seconds, a preliminary signal is available. These agents can use different reasoning strategies — evidence-based, statistical, adversarial — just like the 7 agents in Yiling Market.
+
+**Layer 2 — Human Reporters (depth)**
+Human participants can join any open market by bonding tokens and submitting their own assessment. They catch nuances, cultural context, and domain expertise that AI might miss.
+
+**Layer 3 — SKC Resolution**
+The random stop triggers. The scoring formula runs. Everyone — AI and human alike — is scored by the same rules. No special treatment, no editorial override.
+
+## Integration
+
+\`\`\`javascript
+// Create a content verification market
+const tx = await contract.createMarket(
+  "Is this content misleading? [content_hash: 0xabc...]",
+  ethers.parseEther("0.5"),   // initial price: 50% (uncertain)
+  ethers.parseEther("0.3"),   // alpha: 30% (faster resolution)
+  2,                           // k: last 2 reporters get flat reward
+  ethers.parseEther("0.01"),  // flat reward
+  ethers.parseEther("0.1"),   // bond per report
+  ethers.parseEther("1"),     // liquidity parameter
+  { value: requiredFunding }
+);
+\`\`\`
+
+## Use Cases
+
+- **Social media fact-checking** — decentralized alternative to platform-controlled moderation
+- **News verification** — real-time accuracy scoring for breaking news claims
+- **Forum moderation** — community-driven content quality without admin bias
+- **Review authenticity** — "Is this product review genuine or paid?"
+- **Academic claim verification** — peer assessment of research claims
+- **Political speech analysis** — non-partisan accuracy assessment with financial accountability
+
+## Why It Matters
+
+Every existing content moderation system is either centralized (a company decides) or gameable (volunteers with no skin in the game). Yiling Protocol is the first mechanism that makes content verification:
+
+1. **Incentive-compatible** — lying costs money, honesty pays
+2. **Decentralized** — no platform can override the result
+3. **Mathematically guaranteed** — not "hard to manipulate" but provably irrational to manipulate
+4. **Scalable** — AI agents handle volume, humans add depth`,
 
   // ── SKC MECHANISM ────────────────────────────────────────────────────────
 
