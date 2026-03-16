@@ -45,6 +45,6 @@ The protocol is **fully modular** — you deploy the smart contracts on your cha
 
 ## Quick Links
 
-- [GitHub](https://github.com/Muhammed5500/Yiling-Protocol)
+- [GitHub](https://github.com/YilingProtocol/YilingProtocol)
 - [SKC Paper (Harvard)](https://arxiv.org/abs/2306.04305)
 - [Landing Page](https://yiling.xyz)

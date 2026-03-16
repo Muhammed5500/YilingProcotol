@@ -1107,7 +1107,7 @@ function CTA() {
                 className="group flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-text text-white text-[15px] font-semibold transition-all duration-200 hover:brightness-110 hover:scale-[1.02]">
                 Start Building <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
-              <a href="https://github.com/Muhammed5500/YilingProcotol" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/YilingProtocol/YilingProtocol" target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full border border-border text-text-secondary hover:text-text hover:border-border-light text-[15px] font-medium transition-all duration-200">
                 <Github className="w-4 h-4" /> View on GitHub
               </a>
@@ -1208,7 +1208,7 @@ function Footer() {
             </div>
             <p className="text-text-muted text-[14px] leading-[1.8] max-w-sm">Oracle-free truth discovery infrastructure for any chain. Built on Harvard&apos;s SKC mechanism.</p>
             <div className="flex items-center gap-3">
-              <a href="https://github.com/Muhammed5500/YilingProcotol" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
+              <a href="https://github.com/YilingProtocol/YilingProtocol" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">
                 <Github className="w-4.5 h-4.5" />
               </a>
               <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-border-light transition-all duration-200">

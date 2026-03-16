@@ -11,7 +11,7 @@ Deploy Yiling Protocol and run your first prediction market in 5 minutes.
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Muhammed5500/Yiling-Protocol.git
+git clone https://github.com/YilingProtocol/YilingProtocol.git
 cd Yiling-Protocol
 ```
 
