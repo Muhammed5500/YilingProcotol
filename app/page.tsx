@@ -61,7 +61,7 @@ function Navigation({ dark }: { dark?: boolean }) {
     >
       <div className="mx-auto max-w-6xl px-6 flex items-center justify-between h-[72px]">
         <div className="flex items-center gap-3">
-          <Image src="/logo.svg" alt="Yiling Protocol" width={32} height={32} className="rounded-lg" />
+          <Image src="/logo.svg" alt="Yiling Protocol" width={70} height={70} />
           <span className={`font-heading font-bold text-[16px] tracking-tight transition-colors duration-500 ${dark ? "text-white" : "text-text"}`}>Yiling Protocol</span>
         </div>
 
@@ -1201,9 +1201,7 @@ function Footer() {
         <div className="relative mx-auto max-w-5xl">
           <div className="flex flex-col items-center text-center space-y-5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-orange flex items-center justify-center">
-                <Dices className="w-4 h-4 text-white" />
-              </div>
+              <Image src="/logo.svg" alt="Yiling Protocol" width={70} height={70} />
               <span className="font-heading font-bold text-[17px] text-text">Yiling Protocol</span>
             </div>
             <p className="text-text-muted text-[14px] leading-[1.8] max-w-sm">Oracle-free truth discovery infrastructure for any chain. Built on Harvard&apos;s SKC mechanism.</p>

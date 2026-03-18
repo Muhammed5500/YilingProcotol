@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Yiling Protocol — Oracle-Free Truth Discovery Infrastructure Live on Monad";
+export const alt = "Yiling Protocol — Oracle-Free Truth Discovery Infrastructure";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -28,39 +28,32 @@ export default async function Image() {
             left: 0,
             right: 0,
             height: 6,
-            background: "linear-gradient(90deg, #8100D1, #8100D1)",
+            background: "#2563EB",
           }}
         />
 
-        {/* Dice icon */}
+        {/* Petal Cluster Logo */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 80,
-            height: 80,
-            borderRadius: 20,
-            backgroundColor: "#8100D1",
             marginBottom: 32,
+            gap: 4,
           }}
         >
           <svg
-            width="44"
-            height="44"
-            viewBox="0 0 24 24"
+            width="80"
+            height="80"
+            viewBox="0 0 512 512"
             fill="none"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
           >
-            <rect x="2" y="2" width="20" height="20" rx="4" />
-            <circle cx="7" cy="7" r="1.5" fill="white" stroke="none" />
-            <circle cx="12" cy="12" r="1.5" fill="white" stroke="none" />
-            <circle cx="17" cy="17" r="1.5" fill="white" stroke="none" />
-            <circle cx="17" cy="7" r="1.5" fill="white" stroke="none" />
-            <circle cx="7" cy="17" r="1.5" fill="white" stroke="none" />
+            <g transform="translate(256,256)">
+              <path d="M-8,-8 C-8,-80 -80,-80 -80,-8 Z" fill="#111111"/>
+              <path d="M-8,8 C-8,80 -80,80 -80,8 Z" fill="#111111"/>
+              <circle cx="44" cy="-44" r="36" fill="#2563EB"/>
+              <path d="M8,8 C8,80 80,80 80,8 Z" fill="#111111"/>
+            </g>
           </svg>
         </div>
 
@@ -87,7 +80,7 @@ export default async function Image() {
             marginBottom: 32,
           }}
         >
-          Oracle-Free Prediction Markets
+          Oracle-Free Truth Discovery Infrastructure
         </div>
 
         {/* Monad badge */}
@@ -98,7 +91,7 @@ export default async function Image() {
             gap: 10,
             padding: "10px 24px",
             borderRadius: 999,
-            backgroundColor: "#8100D1",
+            backgroundColor: "#2563EB",
             color: "white",
             fontSize: 20,
             fontWeight: 600,
@@ -117,7 +110,7 @@ export default async function Image() {
             letterSpacing: "0.1em",
           }}
         >
-          SELF-RESOLVING · GAME THEORY · HARVARD SKC MECHANISM
+          SELF-RESOLVING · GAME THEORY · TRUTH RESOLVES ITSELF
         </div>
       </div>
     ),
