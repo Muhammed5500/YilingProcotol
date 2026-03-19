@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Yiling Protocol — Oracle-Free Prediction Markets",
+  title: "Yiling Protocol — Oracle-Free Truth Discovery Infrastructure",
   description:
     "Oracle-free truth discovery infrastructure powered by game theory. Build prediction markets, governance, dispute resolution, and more. Built on Harvard's SKC mechanism.",
   icons: {

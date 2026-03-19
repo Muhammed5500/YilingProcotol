@@ -20,18 +20,6 @@ export default async function Image() {
           fontFamily: "system-ui, sans-serif",
         }}
       >
-        {/* Top accent line */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 6,
-            background: "#2563EB",
-          }}
-        />
-
         {/* Petal Cluster Logo */}
         <div
           style={{
@@ -45,15 +33,13 @@ export default async function Image() {
           <svg
             width="80"
             height="80"
-            viewBox="0 0 512 512"
+            viewBox="176 176 160 160"
             fill="none"
           >
-            <g transform="translate(256,256)">
-              <path d="M-8,-8 C-8,-80 -80,-80 -80,-8 Z" fill="#111111"/>
-              <path d="M-8,8 C-8,80 -80,80 -80,8 Z" fill="#111111"/>
-              <circle cx="44" cy="-44" r="36" fill="#2563EB"/>
-              <path d="M8,8 C8,80 80,80 80,8 Z" fill="#111111"/>
-            </g>
+            <path d="M248,248 C248,176 176,176 176,248 Z" fill="#111111"/>
+            <path d="M248,264 C248,336 176,336 176,264 Z" fill="#111111"/>
+            <circle cx="300" cy="212" r="36" fill="#2563EB"/>
+            <path d="M264,264 C264,336 336,336 336,264 Z" fill="#111111"/>
           </svg>
         </div>
 
