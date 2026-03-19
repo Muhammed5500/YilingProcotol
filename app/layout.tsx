@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Oracle-free truth discovery infrastructure powered by game theory. Build prediction markets, governance, dispute resolution, and more. Built on Harvard's SKC mechanism.",
   icons: {
-    icon: "/logo.svg",
+    icon: "/icon.svg",
   },
 };
 
