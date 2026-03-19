@@ -1217,7 +1217,7 @@ export default function DocsPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/logo.png" alt="Yiling Protocol" width={32} height={32} className="rounded-lg" />
+              <Image src="/logo.svg" alt="Yiling Protocol" width={32} height={32} className="rounded-lg" />
               <span className="font-heading font-bold text-[15px]" style={{ color: darkMode ? "#e5e5e5" : "#171717" }}>Yiling Docs</span>
             </Link>
             <button
