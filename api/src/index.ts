@@ -4,7 +4,7 @@ import { logger } from "hono/logger";
 import { paymentMiddleware } from "@x402/hono";
 import { serve } from "@hono/node-server";
 import { config } from "./config.js";
-import { coinbaseX402Server, createPaymentConfig } from "./middleware/x402.js";
+import { x402Server, createPaymentConfig } from "./middleware/x402.js";
 import queryRoutes from "./routes/query.js";
 import agentRoutes from "./routes/agent.js";
 import healthRoutes from "./routes/health.js";
@@ -17,9 +17,9 @@ const app = new Hono();
 app.use("*", cors());
 app.use("*", logger());
 
-// x402 payment middleware — Coinbase facilitator (Base Sepolia + Solana Devnet)
+// x402 payment middleware
 const paymentConfig = createPaymentConfig(config.treasuryAddress);
-app.use("*", paymentMiddleware(paymentConfig, coinbaseX402Server));
+app.use("*", paymentMiddleware(paymentConfig, x402Server));
 
 // Routes
 app.route("/query", queryRoutes);
