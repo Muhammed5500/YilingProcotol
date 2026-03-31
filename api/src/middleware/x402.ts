@@ -71,20 +71,27 @@ export function buildAccepts(price: string, payTo: string) {
   }));
 }
 
+// Networks for Coinbase middleware only (excludes Monad)
+const coinbaseAccepts = (price: string, payTo: string) =>
+  coinbaseNetworks.map((network) => ({
+    scheme: "exact" as const,
+    price,
+    network,
+    payTo,
+  }));
+
 /**
- * Create payment config for routes
+ * Create payment config for Coinbase facilitator routes
  */
 export function createPaymentConfig(payTo: string) {
-  const accepts = (price: string) => buildAccepts(price, payTo);
-
   return {
     "/query/create": {
-      accepts: accepts("$10.00"),
+      accepts: coinbaseAccepts("$10.00", payTo),
       description: "Create a truth discovery query (bondPool + 15% creation fee)",
       mimeType: "application/json",
     },
     "/query/:id/report": {
-      accepts: accepts("$1.00"),
+      accepts: coinbaseAccepts("$1.00", payTo),
       description: "Submit a report with bond (0% agent fee)",
       mimeType: "application/json",
     },
