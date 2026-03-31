@@ -28,8 +28,24 @@ try {
     url: config.monadFacilitatorUrl,
   });
 
+  const MONAD_NETWORK = "eip155:10143";
+  const MONAD_USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+
+  const monadScheme = new ExactEvmScheme();
+  monadScheme.registerMoneyParser(async (amount: number, network: string) => {
+    if (network === MONAD_NETWORK) {
+      const tokenAmount = Math.floor(amount * 1_000_000).toString();
+      return {
+        amount: tokenAmount,
+        asset: MONAD_USDC,
+        extra: { name: "USDC", version: "2" },
+      };
+    }
+    return null;
+  });
+
   x402Server = new x402ResourceServer(monadFacilitator)
-    .register("eip155:10143", new ExactEvmScheme());   // Monad testnet
+    .register(MONAD_NETWORK, monadScheme);   // Monad testnet
 
   activeNetworks = [
     "eip155:10143",      // Monad testnet
