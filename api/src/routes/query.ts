@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import * as contract from "../services/contract.js";
 import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js";
 import { executePayout } from "../services/payout.js";
+import { createTx, updateTx } from "../services/txTracker.js";
 import type { Address } from "viem";
 
 const query = new Hono();
@@ -40,33 +41,46 @@ query.post("/create", async (c) => {
     // Calculate fees
     const charge = calculateCreationCharge(BigInt(bondPool));
 
-    // TODO: verify x402 payment amount matches charge.totalCharge
-    // The x402 middleware should have collected charge.totalCharge from builder
+    // Track transaction state
+    const tx = createTx("create_query", {
+      amount: charge.totalCharge.toString(),
+    });
 
     // Only the bond pool goes to the Hub contract
-    const result = await contract.createQuery({
-      question,
-      alpha: BigInt(alpha),
-      k: BigInt(k),
-      flatReward: BigInt(flatReward),
-      bondAmount: BigInt(bondAmount),
-      liquidityParam: BigInt(liquidityParam),
-      initialPrice: BigInt(initialPrice),
-      fundingAmount: charge.bondPool, // only bond pool, not the fee
-      minReputation: BigInt(minReputation),
-      reputationTag,
-      creator: creator as Address,
-    });
+    try {
+      const result = await contract.createQuery({
+        question,
+        alpha: BigInt(alpha),
+        k: BigInt(k),
+        flatReward: BigInt(flatReward),
+        bondAmount: BigInt(bondAmount),
+        liquidityParam: BigInt(liquidityParam),
+        initialPrice: BigInt(initialPrice),
+        fundingAmount: charge.bondPool,
+        minReputation: BigInt(minReputation),
+        reputationTag,
+        creator: creator as Address,
+      });
 
-    return c.json({
-      txHash: result.hash,
-      status: "created",
-      fees: {
-        bondPool: charge.bondPool.toString(),
-        creationFee: charge.creationFee.toString(),
-        totalCharged: charge.totalCharge.toString(),
-      },
-    });
+      updateTx(tx.id, { state: "hub_confirmed", hubTxHash: result.hash });
+
+      // x402 settlement happens automatically via middleware
+      updateTx(tx.id, { state: "settled" });
+
+      return c.json({
+        txHash: result.hash,
+        txId: tx.id,
+        status: "created",
+        fees: {
+          bondPool: charge.bondPool.toString(),
+          creationFee: charge.creationFee.toString(),
+          totalCharged: charge.totalCharge.toString(),
+        },
+      });
+    } catch (hubErr: any) {
+      updateTx(tx.id, { state: "hub_failed", error: hubErr.message });
+      throw hubErr;
+    }
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
@@ -114,25 +128,40 @@ query.post("/:id/report", async (c) => {
 
     const params = await contract.getQueryParams(queryId);
 
-    const result = await contract.submitReport({
-      queryId,
-      probability: BigInt(probability),
-      reporter: reporter as Address,
-      bondAmount: params.bondAmount,
+    const tx = createTx("submit_report", {
+      queryId: queryId.toString(),
+      reporter,
+      amount: params.bondAmount.toString(),
       sourceChain: sourceChain || "unknown",
     });
 
-    // Check if random stop was triggered by this report
-    const resolvedAfter = !(await contract.isQueryActive(queryId));
+    try {
+      const result = await contract.submitReport({
+        queryId,
+        probability: BigInt(probability),
+        reporter: reporter as Address,
+        bondAmount: params.bondAmount,
+        sourceChain: sourceChain || "unknown",
+      });
 
-    return c.json({
-      queryId: queryId.toString(),
-      txHash: result.hash,
-      reporter,
-      bondAmount: params.bondAmount.toString(),
-      status: "submitted",
-      queryResolved: resolvedAfter,
-    });
+      updateTx(tx.id, { state: "hub_confirmed", hubTxHash: result.hash });
+      updateTx(tx.id, { state: "settled" });
+
+      const resolvedAfter = !(await contract.isQueryActive(queryId));
+
+      return c.json({
+        queryId: queryId.toString(),
+        txHash: result.hash,
+        txId: tx.id,
+        reporter,
+        bondAmount: params.bondAmount.toString(),
+        status: "submitted",
+        queryResolved: resolvedAfter,
+      });
+    } catch (hubErr: any) {
+      updateTx(tx.id, { state: "hub_failed", error: hubErr.message });
+      throw hubErr;
+    }
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }

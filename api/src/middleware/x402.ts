@@ -25,9 +25,15 @@ import { config } from "../config.js";
  * no SDK implementations ship yet. Add when SDKs become available.
  */
 
-// Facilitator
+// Facilitator with fallback
 const coinbaseFacilitator = new HTTPFacilitatorClient({
-  url: "https://x402.org/facilitator",
+  url: config.facilitatorUrl,
+});
+
+// Fallback facilitator — used if primary is unreachable
+// To switch: update config.facilitatorUrl to config.facilitatorFallbackUrl
+const _fallbackFacilitator = new HTTPFacilitatorClient({
+  url: config.facilitatorFallbackUrl,
 });
 
 // x402 Resource Server — only networks supported by Coinbase facilitator (testnet)

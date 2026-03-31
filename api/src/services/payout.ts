@@ -81,12 +81,7 @@ export async function executePayout(
     if (!solConfig) {
       throw new Error(`Solana chain ${sourceChain} not configured`);
     }
-    // TODO: Implement Solana SPL token transfer
-    // Requires @solana/web3.js and SPL token program interaction
-    throw new Error(
-      `Solana payout not yet implemented. Chain: ${solConfig.chainName}. ` +
-      `Agent should use an EVM chain for payout until Solana support is added.`
-    );
+    return executeSolanaPayout(recipientAddress, amount, solConfig);
   }
 
   // EVM payout
@@ -222,5 +217,55 @@ export async function getTreasuryBalance(
   return {
     balance,
     chain: chainConfig.chainName,
+  };
+}
+
+/**
+ * Execute Solana SPL token payout
+ */
+async function executeSolanaPayout(
+  recipientAddress: string,
+  amount: bigint,
+  solConfig: { rpcUrl: string; usdcMint: string; chainName: string }
+): Promise<{ txHash: string; chain: string }> {
+  const { Connection, Keypair, PublicKey } = await import("@solana/web3.js");
+  const { getOrCreateAssociatedTokenAccount, transfer } = await import("@solana/spl-token");
+
+  if (!config.privateKey) throw new Error("Treasury private key not configured");
+
+  // Convert WAD (18 decimals) to USDC (6 decimals)
+  const usdcAmount = Number(amount / 1_000_000_000_000n);
+  if (usdcAmount === 0) throw new Error("Payout amount too small");
+
+  const connection = new Connection(solConfig.rpcUrl, "confirmed");
+
+  // Derive Solana keypair from private key (first 32 bytes)
+  const privKeyBytes = Buffer.from(config.privateKey.replace("0x", ""), "hex");
+  const keypair = Keypair.fromSeed(privKeyBytes);
+
+  const mintPubkey = new PublicKey(solConfig.usdcMint);
+  const recipientPubkey = new PublicKey(recipientAddress);
+
+  // Get or create associated token accounts
+  const senderATA = await getOrCreateAssociatedTokenAccount(
+    connection, keypair, mintPubkey, keypair.publicKey
+  );
+  const recipientATA = await getOrCreateAssociatedTokenAccount(
+    connection, keypair, mintPubkey, recipientPubkey
+  );
+
+  // Transfer SPL tokens
+  const txHash = await transfer(
+    connection,
+    keypair,
+    senderATA.address,
+    recipientATA.address,
+    keypair.publicKey,
+    usdcAmount
+  );
+
+  return {
+    txHash,
+    chain: solConfig.chainName,
   };
 }

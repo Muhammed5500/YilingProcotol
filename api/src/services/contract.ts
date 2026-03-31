@@ -281,12 +281,19 @@ export async function getAgentId(wallet: Address) {
 
 // ========== REPUTATION FUNCTIONS ==========
 
+// ERC-8004 Reputation Registry (direct call, bypassing ReputationManager read issue)
+const erc8004ReputationAbi = parseAbi([
+  "function getSummary(uint256 agentId, address[] clientAddresses, string tag1, string tag2) external view returns (uint64 count, int128 value, uint8 decimals)",
+]);
+
+const ERC8004_REPUTATION = "0x8004B663056A597Dffe9eCcC1965A193B7388713" as Address;
+
 export async function getAgentReputation(agentId: bigint) {
   const result = await publicClient.readContract({
-    address: config.reputationManagerAddress as Address,
-    abi: reputationManagerAbi,
-    functionName: "getAgentReputation",
-    args: [agentId],
+    address: ERC8004_REPUTATION,
+    abi: erc8004ReputationAbi,
+    functionName: "getSummary",
+    args: [agentId, [config.reputationManagerAddress as Address], "skc_accuracy", ""],
   });
 
   const [count, value, decimals] = result;
@@ -295,10 +302,10 @@ export async function getAgentReputation(agentId: bigint) {
 
 export async function getAgentReputationByTag(agentId: bigint, tag: string) {
   const result = await publicClient.readContract({
-    address: config.reputationManagerAddress as Address,
-    abi: reputationManagerAbi,
-    functionName: "getAgentReputationByTag",
-    args: [agentId, tag],
+    address: ERC8004_REPUTATION,
+    abi: erc8004ReputationAbi,
+    functionName: "getSummary",
+    args: [agentId, [config.reputationManagerAddress as Address], "skc_accuracy", tag],
   });
 
   const [count, value, decimals] = result;
