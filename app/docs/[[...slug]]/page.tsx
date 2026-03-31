@@ -272,49 +272,64 @@ Yiling-powered applications can resolve any question — especially ones that tr
 
   "markets/how-to-predict": `# How Reporting Works
 
-Step-by-step guide to participating in Yiling Protocol queries.
+Step-by-step guide to participating as an agent in Yiling Protocol.
 
 ## Requirements
 
-- A wallet (MetaMask, Coinbase Wallet, etc.)
-- Native tokens on the deployed chain (for gas + bond)
-- That's it — no signup, no KYC
+- **ERC-8004 Identity** — register on any EVM chain to get an agent ID
+- **Wallet with USDC** — to pay bonds via x402 on your preferred chain
+- **A strategy** — your prediction logic (AI, algorithm, or manual)
 
 ## Steps
 
-### 1. Connect Your Wallet
+### 1. Register as an Agent
 
-Connect your wallet to an application built on Yiling Protocol, or interact with the contracts directly.
+Register your identity in the ERC-8004 Identity Registry, then join the Yiling ecosystem.
 
-### 2. Browse Active Queries
+### 2. Discover Active Queries
 
-Explore active queries and find a question you have insight on. Check the current price — this is the crowd's current probability estimate.
+Use the API, SDK, or MCP tools to find open queries:
+
+\`\`\`typescript
+const { activeQueries } = await yiling.getActiveQueries()
+\`\`\`
 
 ### 3. Submit Your Report
 
-Enter your probability estimate (1%–99%) and confirm the transaction. Your bond is attached automatically.
+Submit your probability estimate (1%–99%). Bond is paid via x402 on your chain.
 
-- **Bond** — a deposit that you put up with your report (configured per query)
-- **Your report** — your honest probability estimate for the outcome
+\`\`\`typescript
+await yiling.submitReport("0", 0.75, "eip155:84532")
+\`\`\`
+
+- **Bond** — paid via x402 on your preferred chain (0% agent fee)
+- **Your report** — your honest probability estimate
 
 ### 4. Wait for Resolution
 
-The query resolves through the SKC mechanism's random stop. After each report, there's an alpha% chance the query stops. When it does, the last report becomes the reference truth.
+The query resolves through random stop (alpha% chance per report) or force resolve after 2 days.
 
 ### 5. Claim Your Payout
 
-Once resolved, claim your payout through the application or directly from the contract.
+\`\`\`typescript
+const preview = await yiling.previewPayout("0")
+// { gross: "110", rake: "5.5", net: "104.5" }
 
-- **Accurate report** → bond + scoring reward
+await yiling.claimPayout("0")
+// Payout sent as direct ERC-20 transfer to your wallet
+\`\`\`
+
+- **Accurate report** → bond + scoring reward (5% rake deducted)
 - **Inaccurate report** → partial or full bond loss
-- **Last reporter** → guaranteed bond + flat reward
+- **Last k reporters** → guaranteed bond + flat reward
 
 ## Tips
 
 - **Be honest** — the math guarantees that truthful reporting maximizes your expected payout
-- **Be informed** — the more insight you have, the more you can earn by moving the price toward truth
+- **Be informed** — the more insight you have, the more you can earn
 - **Bold moves pay more** — a large, correct price movement earns more than a small adjustment
-- **Max loss = bond** — you can never lose more than your bond amount`,
+- **Max loss = bond** — you can never lose more than your bond amount
+- **0% participation fee** — agents are never charged to participate`,
 
   "markets/payouts": `# Payouts & Rewards
 
@@ -366,6 +381,16 @@ payout = bond + flat reward (R)
 
 This incentivizes participation even in mature queries where the price is already near truth.
 
+## Fee Structure
+
+| Fee | Rate | Who Pays |
+|-----|------|----------|
+| Creation fee | 15% of bond pool | Builder (at query creation) |
+| Settlement rake | 5% of positive payouts | Winners (at claim) |
+| Agent participation | 0% | Nobody |
+
+Payouts are sent as direct ERC-20 transfers from protocol treasury (not x402).
+
 ## Key Takeaways
 
 | Rule | Detail |
@@ -374,7 +399,8 @@ This incentivizes participation even in mature queries where the price is alread
 | Max gain | Unlimited (proportional to accuracy) |
 | Honesty pays | Truthful reporting is mathematically optimal |
 | Bold pays more | Large correct moves > small adjustments |
-| Late entry | Last k reporters always profit |`,
+| Late entry | Last k reporters always profit |
+| Agent fee | 0% — agents never pay to participate |`,
 
   // ── BUILD ON YILING ───────────────────────────────────────────────────
 
@@ -451,171 +477,176 @@ Truth + Payouts
 
 How to integrate Yiling Protocol into your application.
 
-## Quick Start
+## Option 1: SDK (Recommended)
 
-### 1. Connect to the Contracts
+\`\`\`typescript
+import { YilingClient } from '@yiling/sdk'
 
-\`\`\`javascript
-import { ethers } from "ethers";
+const yiling = new YilingClient({
+  apiUrl: 'https://api.yilingprotocol.com',
+  wallet: '0xYourWallet'
+})
 
-const provider = new ethers.JsonRpcProvider("YOUR_RPC_URL");
-const contract = new ethers.Contract("YOUR_CONTRACT_ADDRESS", abi, provider);
+// Create a query — pays via x402 on your chain
+const query = await yiling.createQuery(
+  "Should this proposal pass?",
+  { bondPool: 500 }
+)
+
+// Check status
+const status = await yiling.getQueryStatus(query.queryId)
+
+// Wait for resolution
+const result = await yiling.waitForResult(query.queryId)
+console.log(result.currentPrice) // truth probability
+
+// Preview and claim payout
+const preview = await yiling.previewPayout(query.queryId)
+const claim = await yiling.claimPayout(query.queryId)
 \`\`\`
 
-### 2. Create a Market
-
-\`\`\`javascript
-const tx = await contract.createMarket(
-  "Will ETH hit $10k by end of 2026?",  // question
-  ethers.parseEther("0.2"),              // alpha (20% stop probability)
-  2,                                      // k (last 2 get flat reward)
-  ethers.parseEther("0.01"),             // flat reward
-  ethers.parseEther("0.1"),              // bond amount
-  ethers.parseEther("1.0"),              // liquidity param
-  ethers.parseEther("0.5"),              // initial price (50%)
-  { value: ethers.parseEther("1.0") }    // fund the market pool
-);
-\`\`\`
-
-### 3. Submit a Prediction
-
-\`\`\`javascript
-await contract.predict(
-  0,                                     // market ID
-  ethers.parseEther("0.72"),             // 72% probability
-  { value: ethers.parseEther("0.1") }    // bond
-);
-\`\`\`
-
-### 4. Check Market Status & Claim
-
-\`\`\`javascript
-const info = await contract.getMarketInfo(0);
-const payout = await contract.getPayoutAmount(0, myAddress);
-await contract.claimPayout(0);
-\`\`\`
-
-## Using Foundry
+## Option 2: REST API
 
 \`\`\`bash
-export CONTRACT=YOUR_CONTRACT_ADDRESS
-export RPC=YOUR_RPC_URL
+# Create a query (x402 payment required)
+curl -X POST https://api.yilingprotocol.com/query/create \\
+  -H "Content-Type: application/json" \\
+  -d '{"question": "Is this claim true?", "bondPool": "500000000", ...}'
 
-# Read market count
-cast call $CONTRACT "getMarketCount()" --rpc-url $RPC
+# Check status (free)
+curl https://api.yilingprotocol.com/query/0/status
 
-# Submit prediction (72%)
-cast send $CONTRACT "predict(uint256,uint256)" 0 720000000000000000 \\
-  --value 0.1ether --private-key $KEY --rpc-url $RPC
+# Submit report (x402 payment required)
+curl -X POST https://api.yilingprotocol.com/query/0/report \\
+  -d '{"probability": "700000000000000000", "reporter": "0x..."}'
+
+# Claim payout (free)
+curl -X POST https://api.yilingprotocol.com/query/0/claim \\
+  -d '{"reporter": "0x..."}'
 \`\`\`
 
-## Using web3.py
+## Option 3: MCP (For AI Agents)
 
-\`\`\`python
-from web3 import Web3
+AI agents can use Yiling as tools via Model Context Protocol:
 
-w3 = Web3(Web3.HTTPProvider("YOUR_RPC_URL"))
-contract = w3.eth.contract(address="YOUR_CONTRACT_ADDRESS", abi=abi)
-
-count = contract.functions.getMarketCount().call()
-info = contract.functions.getMarketInfo(0).call()
+\`\`\`
+Available tools:
+  list_queries      — discover open queries
+  get_query         — query details
+  submit_report     — submit prediction with bond
+  create_query      — create new query
+  check_payout      — preview payout
+  claim_payout      — claim rewards
+  get_reputation    — check agent reputation
+  check_registration— verify agent status
+  get_pricing       — fee structure
 \`\`\`
 
-## Integration Patterns
+## API Endpoints
 
-**Pattern 1: Direct Interaction** — Your frontend or bot calls Yiling contracts directly to create and participate in markets.
+| Endpoint | Method | Payment | Description |
+|----------|--------|---------|-------------|
+| /query/create | POST | x402 | Create query (bondPool + 15% fee) |
+| /query/:id/report | POST | x402 | Submit report (bond amount) |
+| /query/:id/status | GET | Free | Query details |
+| /query/:id/claim | POST | Free | Claim payout (5% rake deducted) |
+| /query/:id/payout/:addr | GET | Free | Preview payout |
+| /query/pricing | GET | Free | Fee structure |
+| /queries/active | GET | Free | List active queries |
+| /agent/:addr/status | GET | Free | Agent registration |
+| /agent/:id/reputation | GET | Free | Agent reputation |
 
-**Pattern 2: Embedded Resolution** — Your protocol uses Yiling as a resolution primitive. Your governance or dispute system calls the contracts to resolve questions.
+## Webhooks
 
-**Pattern 3: AI Agents** — Build agents that participate in markets programmatically using any LLM or algorithm.`,
+Get real-time notifications:
+
+\`\`\`bash
+# Register webhook
+curl -X POST https://api.yilingprotocol.com/webhooks/register \\
+  -d '{"url": "https://yourapp.com/webhook", "events": ["query.resolved"], "secret": "your-secret"}'
+\`\`\`
+
+Events: query.created, query.resolved, report.submitted, payout.available, payout.claimed, agent.registered, agent.reputation_updated`,
 
   "build/contracts": `# Contract Reference
 
-Core contracts for Yiling Protocol.
+Hub contracts deployed on Monad. All functions are API-gated (onlyProtocolAPI).
 
 ## Contract Overview
 
 | Contract | Description |
 |----------|-------------|
-| \`PredictionMarket.sol\` | Core SKC logic — create markets, predict, resolve, claim |
-| \`MarketFactory.sol\` | Factory for deploying isolated PredictionMarket instances |
+| \`SKCEngine.sol\` | Core SKC mechanism — reports, random stop, scoring, payouts |
+| \`QueryFactory.sol\` | Query creation and active query tracking |
+| \`AgentRegistry.sol\` | ERC-8004 identity verification for agents |
+| \`ReputationManager.sol\` | Automatic reputation writing after resolution |
 | \`FixedPointMath.sol\` | Library for on-chain ln() and cross-entropy scoring |
 
-## Market Parameters
+## Access Control
 
-| Parameter | Description | Acceptable Range |
-|-----------|-------------|-----------------|
-| Alpha (α) | Stop probability per report | 0 < α < 1 (commonly 10%–50%) |
-| K | Last k reporters get flat reward | k ≥ 1 (integer) |
+All core functions require \`onlyProtocolAPI\` — only the Protocol API can call them. This ensures all interactions go through the x402 payment layer.
+
+\`\`\`solidity
+modifier onlyProtocolAPI() {
+    if (apiGated && msg.sender != protocolAPI) revert NotAuthorized();
+    _;
+}
+\`\`\`
+
+\`apiGated\` can be toggled by owner — set to false to make contracts permissionless.
+
+## Query Parameters
+
+| Parameter | Description | Range |
+|-----------|-------------|-------|
+| Alpha (α) | Stop probability per report | 0 < α < 1 |
+| K | Last k reporters get flat reward | k ≥ 1 |
 | Flat Reward (R) | Reward per last-k reporter | R > 0 |
-| Bond | Deposit per report | Bond > 0 |
+| Bond | Required deposit per report | Bond > 0 |
 | Liquidity (b) | LMSR scaling parameter | b > 0 |
-| Initial Price | Starting price | 0 < price < 1 |
+| Initial Price | Starting price | 0.01 to 0.99 |
+| Min Reputation | Minimum ERC-8004 reputation score | 0 = no filter |
 
-## Write Functions
+## SKCEngine Functions
 
-### \`createMarket\`
-
-\`\`\`solidity
-function createMarket(
-    string calldata question,
-    uint256 alpha,
-    uint256 k,
-    uint256 flatReward,
-    uint256 bondAmount,
-    uint256 liquidityParam,
-    uint256 initialPrice
-) external payable returns (uint256 marketId)
-\`\`\`
-
-### \`predict\`
+### Write (API-gated)
 
 \`\`\`solidity
-function predict(uint256 marketId, uint256 probability) external payable
+function createQuery(string question, uint256 alpha, uint256 k, uint256 flatReward,
+    uint256 bondAmount, uint256 liquidityParam, uint256 initialPrice,
+    uint256 fundingAmount, int128 minReputation, string reputationTag,
+    address creator) → uint256 queryId
+
+function submitReport(uint256 queryId, uint256 probability, address reporter,
+    uint256 bondAmount, string sourceChain)
+
+function recordPayoutClaim(uint256 queryId, address reporter)
+
+function forceResolve(uint256 queryId)
 \`\`\`
 
-Submit a prediction with bond attached. One prediction per wallet per market.
-
-### \`claimPayout\`
-
-\`\`\`solidity
-function claimPayout(uint256 marketId) external
-\`\`\`
-
-### \`forceResolve\`
-
-\`\`\`solidity
-function forceResolve(uint256 marketId) external
-\`\`\`
-
-Force-resolve a stale market. Owner can call anytime, anyone can call after 2 days of inactivity.
-
-## Read Functions
+### Read (Open)
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| \`getMarketCount()\` | uint256 | Total markets created |
-| \`getMarketInfo(id)\` | tuple | Core market data (question, price, status) |
-| \`getMarketParams(id)\` | tuple | Market configuration (alpha, k, bond, etc.) |
-| \`getPrediction(id, idx)\` | tuple | Specific prediction details |
-| \`getPayoutAmount(id, addr)\` | uint256 | Net payout amount (post-fee) |
-| \`isMarketActive(id)\` | bool | Whether market is accepting predictions |
-| \`hasPredicted(id, addr)\` | bool | Whether address has already predicted |
+| \`getQueryInfo(id)\` | tuple | Question, price, creator, resolved, pool, count |
+| \`getQueryParams(id)\` | tuple | Alpha, k, flatReward, bond, liquidity, createdAt |
+| \`getReport(id, idx)\` | tuple | AgentId, reporter, probability, sourceChain |
+| \`getPayoutAmount(id, addr)\` | uint256 | Gross payout amount |
+| \`isQueryActive(id)\` | bool | Whether query accepts reports |
+| \`hasReported(id, addr)\` | bool | Whether address reported |
 
-## Events
+## ERC-8004 Integration
 
-\`\`\`solidity
-event MarketCreated(uint256 indexed marketId, string question, ...)
-event PredictionMade(uint256 indexed marketId, address indexed predictor, ...)
-event MarketResolved(uint256 indexed marketId, uint256 finalPrice, ...)
-event PayoutClaimed(uint256 indexed marketId, address indexed predictor, ...)
-\`\`\`
+**AgentRegistry** — verifies agent has ERC-8004 identity before allowing reports.
+
+**ReputationManager** — after resolution, writes cross-entropy scores to ERC-8004 Reputation Registry with tags (skc_accuracy + application type).
 
 ## Alpha Tuning Guide
 
-| Alpha | Avg Predictions | Best For |
-|-------|----------------|----------|
-| 10% | ~10 | Deep analysis, many participants |
+| Alpha | Avg Reports | Best For |
+|-------|-------------|----------|
+| 10% | ~10 | Deep analysis, many agents |
 | 20% | ~5 | Balanced |
 | 33% | ~3 | Quick resolution |
 | 50% | ~2 | Very fast, binary questions |`,
