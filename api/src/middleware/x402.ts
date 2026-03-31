@@ -5,51 +5,48 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { config } from "../config.js";
 
 /**
- * x402 Payment Middleware
+ * x402 Payment Middleware — Multi-Facilitator Setup
  *
- * IMPORTANT: x402 is a client-to-server PULL payment protocol.
- * It can only COLLECT payments (inbound), NOT push payments (outbound).
+ * Two facilitators, two x402 servers:
+ *   1. Coinbase facilitator → Base Sepolia, Solana Devnet
+ *   2. Monad facilitator   → Monad Testnet
  *
- * Used for:
- *   ✅ Market creation fees (builder pays)
- *   ✅ Agent bond payments (agent pays)
- *
- * NOT used for:
- *   ❌ Agent payouts (use direct ERC-20 transfer from treasury instead)
- *
- * Supported chains (shipping SDK implementations only):
- *   - EVM: Base, Arbitrum, Optimism, Ethereum, Polygon, Avalanche
- *   - SVM: Solana
- *
- * Note: Specs exist for Aptos, Stellar, Sui, Algorand, Hedera but
- * no SDK implementations ship yet. Add when SDKs become available.
+ * Builder/agent pays on whichever chain they have funds on.
+ * The correct facilitator is used automatically.
  */
 
-// Facilitators
+// Facilitator 1: Coinbase (Base, Solana)
 const coinbaseFacilitator = new HTTPFacilitatorClient({
   url: config.facilitatorUrl,
 });
 
+// Facilitator 2: Monad
 const monadFacilitator = new HTTPFacilitatorClient({
-  url: "https://x402-facilitator.molandak.org",
+  url: config.monadFacilitatorUrl,
 });
 
-// x402 Resource Server — Base Sepolia + Solana Devnet (Coinbase facilitator)
-// Note: Monad uses a separate facilitator, added via overrides
-export const x402Server = new x402ResourceServer(coinbaseFacilitator)
+// Server 1: Coinbase chains
+export const coinbaseX402Server = new x402ResourceServer(coinbaseFacilitator)
   .register("eip155:84532", new ExactEvmScheme())     // Base Sepolia
   .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());  // Solana devnet
 
-// TODO: Monad x402 support requires separate facilitator (molandak.org)
-// x402ResourceServer only accepts one facilitator at construction.
-// Monad payment acceptance will be added when multi-facilitator support is available
-// or via a separate x402 server instance for Monad routes.
+// Server 2: Monad
+export const monadX402Server = new x402ResourceServer(monadFacilitator)
+  .register("eip155:10143", new ExactEvmScheme());    // Monad testnet
 
-// Supported inbound payment networks (TESTNET)
-export const allNetworks: `${string}:${string}`[] = [
+// All supported networks (TESTNET)
+const coinbaseNetworks: `${string}:${string}`[] = [
   "eip155:84532",      // Base Sepolia
   "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  // Solana devnet
-  // "eip155:10143" — Monad testnet (separate facilitator, coming soon)
+];
+
+const monadNetworks: `${string}:${string}`[] = [
+  "eip155:10143",      // Monad testnet
+];
+
+export const allNetworks: `${string}:${string}`[] = [
+  ...monadNetworks,
+  ...coinbaseNetworks,
 ];
 
 /**
@@ -62,4 +59,24 @@ export function buildAccepts(price: string, payTo: string) {
     network,
     payTo,
   }));
+}
+
+/**
+ * Create payment config for routes
+ */
+export function createPaymentConfig(payTo: string) {
+  const accepts = (price: string) => buildAccepts(price, payTo);
+
+  return {
+    "/query/create": {
+      accepts: accepts("$10.00"),
+      description: "Create a truth discovery query (bondPool + 15% creation fee)",
+      mimeType: "application/json",
+    },
+    "/query/:id/report": {
+      accepts: accepts("$1.00"),
+      description: "Submit a report with bond (0% agent fee)",
+      mimeType: "application/json",
+    },
+  };
 }

@@ -4,8 +4,7 @@ import { logger } from "hono/logger";
 import { paymentMiddleware } from "@x402/hono";
 import { serve } from "@hono/node-server";
 import { config } from "./config.js";
-import { x402Server, buildAccepts } from "./middleware/x402.js";
-import { FEE_CONFIG } from "./services/fees.js";
+import { coinbaseX402Server, monadX402Server, createPaymentConfig } from "./middleware/x402.js";
 import queryRoutes from "./routes/query.js";
 import agentRoutes from "./routes/agent.js";
 import healthRoutes from "./routes/health.js";
@@ -18,25 +17,18 @@ const app = new Hono();
 app.use("*", cors());
 app.use("*", logger());
 
-// x402 payment middleware — protects paid endpoints
-app.use(
-  "*",
-  paymentMiddleware(
-    {
-      "/query/create": {
-        accepts: buildAccepts("$10.00", config.treasuryAddress),
-        description: "Create a truth discovery query (bondPool + 15% creation fee)",
-        mimeType: "application/json",
-      },
-      "/query/:id/report": {
-        accepts: buildAccepts("$1.00", config.treasuryAddress),
-        description: "Submit a report with bond (0% agent fee)",
-        mimeType: "application/json",
-      },
-    },
-    x402Server
-  )
-);
+// x402 payment middleware — two facilitators
+// Coinbase: Base Sepolia + Solana Devnet
+const paymentConfig = createPaymentConfig(config.treasuryAddress);
+app.use("*", paymentMiddleware(paymentConfig, coinbaseX402Server));
+
+// Monad facilitator: Monad testnet
+// Applied as second middleware — if Coinbase rejects (wrong chain), Monad tries
+try {
+  app.use("*", paymentMiddleware(paymentConfig, monadX402Server));
+} catch {
+  console.log("Monad x402 middleware initialization skipped (facilitator may be unreachable)");
+}
 
 // Routes
 app.route("/query", queryRoutes);
