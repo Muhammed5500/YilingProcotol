@@ -2,82 +2,77 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
+import type { Context, Next } from "hono";
 import { config } from "../config.js";
 
 /**
- * x402 Payment Middleware — Multi-Facilitator
+ * x402 Multi-Facilitator Middleware
  *
- * Problem: x402ResourceServer takes one facilitator. We need two.
- * Solution: Use Monad facilitator as primary (it only handles Monad),
- *           register Coinbase chains with their own facilitator via
- *           scheme-level configuration.
- *
- * Supported chains:
- *   - Monad testnet (eip155:10143) — Monad facilitator
- *   - Base Sepolia (eip155:84532) — Coinbase facilitator
- *   - Solana Devnet — Coinbase facilitator
+ * Two facilitators, two x402 servers, one middleware.
+ * When a paid endpoint is hit:
+ *   1. First try Monad facilitator
+ *   2. If that fails, try Coinbase facilitator
+ *   3. 402 response lists ALL supported networks
  */
 
-// Try Monad facilitator first, fall back to Coinbase-only if it fails
-let x402Server: x402ResourceServer;
-let activeNetworks: `${string}:${string}`[];
+// ─── Monad Server ───────────────────────────────────────────
+const MONAD_NETWORK = "eip155:10143" as const;
+const MONAD_USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
 
-try {
-  // Attempt: Monad facilitator as primary server
-  const monadFacilitator = new HTTPFacilitatorClient({
-    url: config.monadFacilitatorUrl,
-  });
+const monadFacilitator = new HTTPFacilitatorClient({
+  url: config.monadFacilitatorUrl,
+});
 
-  const MONAD_NETWORK = "eip155:10143";
-  const MONAD_USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+const monadScheme = new ExactEvmScheme();
+monadScheme.registerMoneyParser(async (amount: number, network: string) => {
+  if (network === MONAD_NETWORK) {
+    return {
+      amount: Math.floor(amount * 1_000_000).toString(),
+      asset: MONAD_USDC,
+      extra: { name: "USDC", version: "2" },
+    };
+  }
+  return null;
+});
 
-  const monadScheme = new ExactEvmScheme();
-  monadScheme.registerMoneyParser(async (amount: number, network: string) => {
-    if (network === MONAD_NETWORK) {
-      const tokenAmount = Math.floor(amount * 1_000_000).toString();
-      return {
-        amount: tokenAmount,
-        asset: MONAD_USDC,
-        extra: { name: "USDC", version: "2" },
-      };
-    }
-    return null;
-  });
+const monadServer = new x402ResourceServer(monadFacilitator)
+  .register(MONAD_NETWORK, monadScheme);
 
-  x402Server = new x402ResourceServer(monadFacilitator)
-    .register(MONAD_NETWORK, monadScheme);   // Monad testnet
+// ─── Coinbase Server ────────────────────────────────────────
+const coinbaseFacilitator = new HTTPFacilitatorClient({
+  url: config.facilitatorUrl,
+});
 
-  activeNetworks = [
-    "eip155:10143",      // Monad testnet
-  ];
+const coinbaseServer = new x402ResourceServer(coinbaseFacilitator)
+  .register("eip155:84532", new ExactEvmScheme())
+  .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());
 
-  console.log("x402: Monad facilitator active (eip155:10143)");
-} catch {
-  // Fallback: Coinbase facilitator only
-  const coinbaseFacilitator = new HTTPFacilitatorClient({
-    url: config.facilitatorUrl,
-  });
+// ─── All Networks ───────────────────────────────────────────
+export const allNetworks: `${string}:${string}`[] = [
+  "eip155:10143",      // Monad testnet
+  "eip155:84532",      // Base Sepolia
+  "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",  // Solana devnet
+];
 
-  x402Server = new x402ResourceServer(coinbaseFacilitator)
-    .register("eip155:84532", new ExactEvmScheme())
-    .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());
+// ─── Route Config ───────────────────────────────────────────
+const paidRoutes: Record<string, { price: string; description: string }> = {
+  "/query/create": { price: "$10.00", description: "Create a truth discovery query" },
+  "/query/:id/report": { price: "$1.00", description: "Submit a report with bond" },
+};
 
-  activeNetworks = [
-    "eip155:84532",
-    "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
-  ];
-
-  console.log("x402: Coinbase facilitator fallback (Base Sepolia + Solana)");
+function matchRoute(path: string): string | null {
+  for (const pattern of Object.keys(paidRoutes)) {
+    const regex = new RegExp("^" + pattern.replace(/:id/g, "[^/]+") + "$");
+    if (regex.test(path)) return pattern;
+  }
+  return null;
 }
 
-export { x402Server };
-export { activeNetworks as allNetworks };
-
 /**
- * Build x402 accepts array for a given dollar amount
+ * Build accepts array with all networks
  */
 export function buildAccepts(price: string, payTo: string) {
-  return activeNetworks.map((network) => ({
+  return allNetworks.map((network) => ({
     scheme: "exact" as const,
     price,
     network,
@@ -86,19 +81,75 @@ export function buildAccepts(price: string, payTo: string) {
 }
 
 /**
- * Create payment config for routes
+ * Multi-facilitator payment middleware
+ *
+ * For paid routes:
+ *   - No payment header → return 402 with ALL networks
+ *   - Payment from Monad → verify with Monad facilitator
+ *   - Payment from Base/Solana → verify with Coinbase facilitator
  */
-export function createPaymentConfig(payTo: string) {
-  return {
-    "/query/create": {
-      accepts: buildAccepts("$10.00", payTo),
-      description: "Create a truth discovery query (bondPool + 15% creation fee)",
+export function createMultiFacilitatorMiddleware(payTo: string) {
+  // Create individual middlewares
+  const monadConfig: Record<string, any> = {};
+  const coinbaseConfig: Record<string, any> = {};
+
+  for (const [route, cfg] of Object.entries(paidRoutes)) {
+    monadConfig[route] = {
+      accepts: [{ scheme: "exact" as const, price: cfg.price, network: MONAD_NETWORK, payTo }],
+      description: cfg.description,
       mimeType: "application/json",
-    },
-    "/query/:id/report": {
-      accepts: buildAccepts("$1.00", payTo),
-      description: "Submit a report with bond (0% agent fee)",
+    };
+    coinbaseConfig[route] = {
+      accepts: [
+        { scheme: "exact" as const, price: cfg.price, network: "eip155:84532" as const, payTo },
+        { scheme: "exact" as const, price: cfg.price, network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" as const, payTo },
+      ],
+      description: cfg.description,
       mimeType: "application/json",
-    },
+    };
+  }
+
+  const monadMiddleware = paymentMiddleware(monadConfig, monadServer);
+  const coinbaseMiddleware = paymentMiddleware(coinbaseConfig, coinbaseServer);
+
+  return async (c: Context, next: Next) => {
+    const path = c.req.path;
+    const route = matchRoute(path);
+
+    // Not a paid route → pass through
+    if (!route) {
+      return next();
+    }
+
+    const paymentHeader = c.req.header("X-PAYMENT") || c.req.header("x-payment");
+
+    // No payment → return 402 with ALL networks
+    if (!paymentHeader) {
+      const cfg = paidRoutes[route];
+      return c.json(
+        {
+          x402Version: 2,
+          accepts: buildAccepts(cfg.price, payTo),
+          error: "Payment Required",
+        },
+        402
+      );
+    }
+
+    // Has payment → try Monad first, then Coinbase
+    try {
+      // Check if payment is for Monad network
+      const paymentData = JSON.parse(paymentHeader);
+      const network = paymentData?.network || paymentData?.payload?.network || "";
+
+      if (network === MONAD_NETWORK || network.includes("10143")) {
+        return monadMiddleware(c, next);
+      } else {
+        return coinbaseMiddleware(c, next);
+      }
+    } catch {
+      // Can't parse → try Coinbase as default
+      return coinbaseMiddleware(c, next);
+    }
   };
 }
