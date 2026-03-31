@@ -123,22 +123,14 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
 
     const paymentHeader = c.req.header("X-PAYMENT") || c.req.header("x-payment");
 
-    // No payment → return 402 with ALL networks
+    // No payment → let Monad middleware return 402
+    // (SDK formats the 402 response with correct headers)
     if (!paymentHeader) {
-      const cfg = paidRoutes[route];
-      return c.json(
-        {
-          x402Version: 2,
-          accepts: buildAccepts(cfg.price, payTo),
-          error: "Payment Required",
-        },
-        402
-      );
+      return monadMiddleware(c, next);
     }
 
-    // Has payment → try Monad first, then Coinbase
+    // Has payment → route to correct facilitator based on network
     try {
-      // Check if payment is for Monad network
       const paymentData = JSON.parse(paymentHeader);
       const network = paymentData?.network || paymentData?.payload?.network || "";
 
@@ -148,8 +140,8 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
         return coinbaseMiddleware(c, next);
       }
     } catch {
-      // Can't parse → try Coinbase as default
-      return coinbaseMiddleware(c, next);
+      // Can't parse → try Monad as default
+      return monadMiddleware(c, next);
     }
   };
 }
