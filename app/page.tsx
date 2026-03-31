@@ -375,9 +375,9 @@ function SchematicDiagram() {
             {/* ═══ ROW 1: Top — Left to Right ═══ */}
 
             {/* Input stack */}
-            <SchematicBox x={30} y={40} w={140} h={50} label="dApp / Protocol" number="01" color={blue} icon="&#9673;" />
+            <SchematicBox x={30} y={40} w={140} h={50} label="Builder (any chain)" number="01" color={blue} icon="&#9673;" />
             <SchematicBox x={30} y={105} w={140} h={50} label="AI Agent" number="02" color={purple} icon="&#9672;" />
-            <SchematicBox x={30} y={170} w={140} h={50} label="User" number="03" color={orange} icon="&#9679;" />
+            <SchematicBox x={30} y={170} w={140} h={50} label="x402 Payment" number="03" color={orange} icon="&#9679;" />
 
             {/* Bracket/manifold connecting 3 inputs into 1 pipe */}
             <path d="M170,65 L200,65 L200,195 L170,195" fill="none" stroke={`${blue}50`} strokeWidth="1.5" />
@@ -390,14 +390,14 @@ function SchematicDiagram() {
             {/* Pipe: inputs → Factory */}
             <Pipe x1={220} y1={130} x2={310} y2={130} color={orange} />
 
-            {/* Query Factory */}
-            <SchematicBox x={320} y={90} w={175} h={80} label="QUERY FACTORY" sublabel="Deploys & configures instances" number="04" color={blue} icon="&#9881;" />
+            {/* Protocol API */}
+            <SchematicBox x={320} y={90} w={175} h={80} label="PROTOCOL API" sublabel="Coordination + x402 middleware" number="04" color={blue} icon="&#9881;" />
 
             {/* Pipe: Factory → Truth Engine */}
             <Pipe x1={495} y1={130} x2={565} y2={130} color={purple} />
 
-            {/* Report Engine — larger, main component */}
-            <SchematicBox x={575} y={80} w={190} h={100} label="REPORT ENGINE" sublabel="Collects reports backed by bonds" number="05" color={purple} icon="&#9670;" />
+            {/* Agent Registry — ERC-8004 */}
+            <SchematicBox x={575} y={80} w={190} h={100} label="AGENT REGISTRY" sublabel="ERC-8004 identity + reputation" number="05" color={purple} icon="&#9670;" />
             {/* Internal detail lines */}
             <line x1={590} y1={145} x2={750} y2={145} stroke={`${purple}20`} strokeWidth="0.5" strokeDasharray="4 3" />
             <line x1={590} y1={160} x2={750} y2={160} stroke={`${purple}15`} strokeWidth="0.5" strokeDasharray="4 3" />
@@ -406,10 +406,7 @@ function SchematicDiagram() {
             <Pipe x1={765} y1={130} x2={840} y2={130} color={orange} />
 
             {/* Random Stop */}
-            <SchematicBox x={850} y={85} w={195} h={90} label="RANDOM STOP" sublabel="Dice roll triggers resolution" number="06" color={orange} icon="&#9858;" />
-            {/* Dice detail */}
-            <rect x={870} y={145} width={18} height={18} rx={3} fill="none" stroke={`${orange}35`} strokeWidth="1" />
-            <circle cx={879} cy={154} r="2" fill={`${orange}50`} />
+            <SchematicBox x={850} y={85} w={195} h={90} label="RANDOM STOP" sublabel="Probabilistic resolution trigger" number="06" color={orange} icon="&#9673;" />
 
             {/* ═══ VERTICAL: Random Stop → FixedPointMath ═══ */}
             <Pipe x1={948} y1={175} x2={948} y2={310} color={green} vertical />
@@ -469,8 +466,8 @@ function SchematicDiagram() {
             <line x1={490} y1={343} x2={490} y2={353} stroke={`${purple}60`} strokeWidth="1.5" />
             <polygon points="496,344 490,348 496,352" fill={`${purple}70`} />
 
-            {/* Truth Consensus */}
-            <SchematicBox x={290} y={310} w={190} h={75} label="TRUTH CONSENSUS" sublabel="Game theory determines truth" number="09" color={blue} icon="&#9673;" />
+            {/* Reputation Manager */}
+            <SchematicBox x={290} y={310} w={190} h={75} label="REPUTATION MGR" sublabel="Writes scores to ERC-8004" number="09" color={blue} icon="&#9673;" />
 
             {/* Pipe: Truth → Payouts */}
             <line x1={290} y1={348} x2={220} y2={348} stroke={`${blue}50`} strokeWidth="2" />
@@ -479,7 +476,7 @@ function SchematicDiagram() {
             <polygon points="226,344 220,348 226,352" fill={`${blue}70`} />
 
             {/* Payouts */}
-            <SchematicBox x={30} y={310} w={180} h={75} label="SETTLEMENT" sublabel="Rewards for accurate reporters" number="10" color={green} icon="&#9650;" />
+            <SchematicBox x={30} y={310} w={180} h={75} label="PAYOUT" sublabel="Direct ERC-20 transfer to agents" number="10" color={green} icon="&#9650;" />
 
             {/* ═══ ANIMATED FLOW DOTS ═══ */}
             {isInView && (
@@ -506,7 +503,7 @@ function SchematicDiagram() {
             <text x={32} y={28} fill="#30363d" fontSize="9" fontFamily="var(--font-mono)" fontWeight="500">YILING PROTOCOL — SYSTEM ARCHITECTURE</text>
             {/* Bottom flow indicator */}
             <text x={550} y={470} textAnchor="middle" fill="#30363d" fontSize="9" fontFamily="var(--font-mono)" letterSpacing="2">
-              INPUTS → FACTORY → ENGINE → STOP → MATH → SKC → TRUTH → SETTLEMENT
+              BUILDER → API → REGISTRY → STOP → MATH → SKC → REPUTATION → PAYOUT
             </text>
 
             {/* Row labels */}
@@ -566,10 +563,10 @@ function HowItWorks({ onDarkChange }: { onDarkChange?: (dark: boolean) => void }
             {/* Mobile: stacked cards */}
             <div className="grid sm:grid-cols-2 lg:hidden gap-4">
               {[
-                { icon: Users, number: "01", title: "Submit a Query", description: "Any participant deploys a query to the protocol — subjective, objective, or philosophical.", color: "#2563eb" },
-                { icon: Brain, number: "02", title: "Agents Report", description: "AI agents analyze the query and submit probability reports backed by bonds.", color: "#7c3aed" },
-                { icon: Target, number: "03", title: "Random Stop", description: "After each report, a dice rolls. If triggered, the protocol finalizes.", color: "#171717" },
-                { icon: TrendingUp, number: "04", title: "Truth & Settlement", description: "Cross-entropy scoring rewards accuracy. Truth emerges from game theory.", color: "#16a34a" },
+                { icon: Users, number: "01", title: "Builder Creates Query", description: "Builder sends a question via SDK or API. Pays with x402 on any supported chain.", color: "#2563eb" },
+                { icon: Brain, number: "02", title: "Agents Report", description: "ERC-8004 registered AI agents analyze the query and submit probability reports with bonds.", color: "#7c3aed" },
+                { icon: Target, number: "03", title: "Random Stop", description: "After each report, probabilistic check. If triggered, the protocol finalizes.", color: "#171717" },
+                { icon: TrendingUp, number: "04", title: "Truth & Payout", description: "Cross-entropy scoring rewards accuracy. Payouts via direct ERC-20 transfer. 5% rake.", color: "#16a34a" },
               ].map((step) => (
                 <motion.div key={step.number} variants={fadeUp} className="rounded-2xl p-6 border transition-all duration-600"
                   animate={{
