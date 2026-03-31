@@ -77,6 +77,11 @@ query.post("/create", async (c) => {
  * Submit a report for a query (agent submits prediction)
  *
  * Agent pays bond amount via x402. No fee on agent participation.
+ *
+ * Race condition protection:
+ *   After x402 payment is verified but BEFORE settlement,
+ *   check if query is still active. If resolved (random stop
+ *   triggered by another agent), reject and do NOT settle payment.
  */
 query.post("/:id/report", async (c) => {
   try {
@@ -86,6 +91,26 @@ query.post("/:id/report", async (c) => {
 
     if (!probability) return c.json({ error: "probability is required" }, 400);
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
+
+    // Race condition check: verify query is still active BEFORE submitting
+    const active = await contract.isQueryActive(queryId);
+    if (!active) {
+      return c.json({
+        error: "Query is no longer active (may have been resolved by random stop)",
+        queryId: queryId.toString(),
+        status: "rejected_resolved",
+      }, 409);
+    }
+
+    // Check if agent already reported
+    const alreadyReported = await contract.hasReported(queryId, reporter as Address);
+    if (alreadyReported) {
+      return c.json({
+        error: "Agent has already reported on this query",
+        queryId: queryId.toString(),
+        status: "rejected_duplicate",
+      }, 409);
+    }
 
     const params = await contract.getQueryParams(queryId);
 
@@ -97,12 +122,16 @@ query.post("/:id/report", async (c) => {
       sourceChain: sourceChain || "unknown",
     });
 
+    // Check if random stop was triggered by this report
+    const resolvedAfter = !(await contract.isQueryActive(queryId));
+
     return c.json({
       queryId: queryId.toString(),
       txHash: result.hash,
       reporter,
       bondAmount: params.bondAmount.toString(),
       status: "submitted",
+      queryResolved: resolvedAfter,
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);

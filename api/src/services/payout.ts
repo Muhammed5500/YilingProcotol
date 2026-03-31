@@ -47,7 +47,19 @@ const TREASURY_CHAINS: Record<string, ChainTreasury> = {
     usdcAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as Address, // Ethereum Sepolia USDC
     chainName: "Ethereum Sepolia",
   },
-  // Add more chains as needed
+  // Add more EVM chains as needed
+
+  // Non-EVM chains are handled separately in executePayout()
+  // Solana uses SPL token transfer, not ERC-20
+};
+
+// Solana treasury config (separate because different transfer mechanism)
+const SOLANA_TREASURY = {
+  "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1": {
+    rpcUrl: "https://api.devnet.solana.com",
+    usdcMint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", // Solana Devnet USDC
+    chainName: "Solana Devnet",
+  },
 };
 
 /**
@@ -63,12 +75,28 @@ export async function executePayout(
   amount: bigint,
   sourceChain: string
 ): Promise<{ txHash: string; chain: string }> {
+  // Check if this is a Solana chain
+  if (sourceChain.startsWith("solana:")) {
+    const solConfig = SOLANA_TREASURY[sourceChain as keyof typeof SOLANA_TREASURY];
+    if (!solConfig) {
+      throw new Error(`Solana chain ${sourceChain} not configured`);
+    }
+    // TODO: Implement Solana SPL token transfer
+    // Requires @solana/web3.js and SPL token program interaction
+    throw new Error(
+      `Solana payout not yet implemented. Chain: ${solConfig.chainName}. ` +
+      `Agent should use an EVM chain for payout until Solana support is added.`
+    );
+  }
+
+  // EVM payout
   const chainConfig = TREASURY_CHAINS[sourceChain];
 
   if (!chainConfig) {
     throw new Error(
       `Payout not supported on chain ${sourceChain}. ` +
-      `Supported: ${Object.keys(TREASURY_CHAINS).join(", ")}`
+      `Supported EVM: ${Object.keys(TREASURY_CHAINS).join(", ")}. ` +
+      `Solana: coming soon.`
     );
   }
 
@@ -91,6 +119,23 @@ export async function executePayout(
     throw new Error("Payout amount too small to convert to USDC");
   }
 
+  // Treasury balance pre-check
+  const { createPublicClient } = await import("viem");
+  const checkClient = createPublicClient({ transport: http(chainConfig.rpcUrl) });
+  const treasuryBalance = await checkClient.readContract({
+    address: chainConfig.usdcAddress,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: [account.address],
+  });
+
+  if (treasuryBalance < usdcAmount) {
+    throw new Error(
+      `Insufficient treasury balance on ${chainConfig.chainName}. ` +
+      `Required: ${usdcAmount}, Available: ${treasuryBalance}`
+    );
+  }
+
   // Execute ERC-20 transfer from treasury to agent
   const txHash = await walletClient.writeContract({
     address: chainConfig.usdcAddress,
@@ -104,6 +149,44 @@ export async function executePayout(
     txHash,
     chain: chainConfig.chainName,
   };
+}
+
+/**
+ * Get all treasury balances across all chains
+ */
+export async function getAllTreasuryBalances(): Promise<
+  { chain: string; chainId: string; balance: string; balanceUSDC: string }[]
+> {
+  if (!config.privateKey) throw new Error("Treasury private key not configured");
+  const account = privateKeyToAccount(config.privateKey as Hex);
+
+  const results = [];
+  for (const [chainId, chainConfig] of Object.entries(TREASURY_CHAINS)) {
+    try {
+      const { createPublicClient } = await import("viem");
+      const client = createPublicClient({ transport: http(chainConfig.rpcUrl) });
+      const balance = await client.readContract({
+        address: chainConfig.usdcAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [account.address],
+      });
+      results.push({
+        chain: chainConfig.chainName,
+        chainId,
+        balance: balance.toString(),
+        balanceUSDC: (Number(balance) / 1e6).toFixed(2),
+      });
+    } catch {
+      results.push({
+        chain: chainConfig.chainName,
+        chainId,
+        balance: "0",
+        balanceUSDC: "0.00",
+      });
+    }
+  }
+  return results;
 }
 
 /**

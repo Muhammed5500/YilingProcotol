@@ -75,6 +75,27 @@ app.get("/queries/active", async (c) => {
   }
 });
 
+// Treasury balances (admin)
+app.get("/treasury/balances", async (c) => {
+  try {
+    const { getAllTreasuryBalances } = await import("./services/payout.js");
+    const balances = await getAllTreasuryBalances();
+    return c.json({ treasury: balances });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// Transaction status (admin)
+app.get("/admin/transactions", async (c) => {
+  const { getTxSummary, getRetryable, getRefundable } = await import("./services/txTracker.js");
+  return c.json({
+    summary: getTxSummary(),
+    retryable: getRetryable().length,
+    refundable: getRefundable().length,
+  });
+});
+
 // Root
 app.get("/", (c) => {
   return c.json({
