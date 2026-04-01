@@ -944,9 +944,9 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Wallet, title: "Pay from Any Chain", desc: "Create truth discovery queries from Base, Arbitrum, Solana, or any x402-supported chain. No blockchain knowledge needed.", link: "View Networks", href: "#networks" },
+  { icon: Wallet, title: "Pay from Any Chain", desc: "Create truth discovery queries from Monad, Base, Solana, or any x402-supported chain. No blockchain knowledge needed.", link: "View Networks", href: "#networks" },
   { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that earn by predicting accurately. Use MCP tools, agent templates, or build from scratch.", link: "Agent Guide", href: "/docs/build/agent-guide" },
-  { icon: Code2, title: "SDK & API", desc: "3 lines to truth discovery. TypeScript SDK, REST API, MCP tools, A2A support, and webhooks.", link: "View Docs", href: "/docs/build/integration" },
+  { icon: Code2, title: "API & Tools", desc: "REST API, MCP tools for AI agents, A2A support, webhooks, and TypeScript SDK.", link: "View Docs", href: "/docs/build/integration" },
 ];
 
 function Builders() {
