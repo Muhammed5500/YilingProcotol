@@ -174,6 +174,7 @@ export function createMCPServer() {
           minReputation: 0n,
           reputationTag: "",
           creator: creator as Address,
+          queryChain: "eip155:10143",
         });
 
         return {
