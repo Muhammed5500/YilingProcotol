@@ -65,7 +65,8 @@ contract QueryFactory {
         uint256 fundingAmount,
         int128 minReputation,
         string calldata reputationTag,
-        address creator
+        address creator,
+        string calldata queryChain
     ) external onlyProtocolAPI returns (uint256 queryId) {
         queryId = skcEngine.createQuery(
             question,
@@ -78,7 +79,8 @@ contract QueryFactory {
             fundingAmount,
             minReputation,
             reputationTag,
-            creator
+            creator,
+            queryChain
         );
 
         _creatorQueries[creator].push(queryId);

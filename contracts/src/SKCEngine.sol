@@ -47,6 +47,7 @@ contract SKCEngine {
         uint256 createdAt;
         int128 minReputation;   // minimum reputation threshold (0 = no filter)
         string reputationTag;   // tag2 for reputation filtering
+        string queryChain;      // chain where payments happen (set by builder's payment chain)
     }
 
     // --- State ---
@@ -105,6 +106,7 @@ contract SKCEngine {
     error AgentNotRegistered();
     error AgentNotEligible();
     error InsufficientFunding();
+    error ChainMismatch();
     error ForceResolveNotReady();
     error NoPayout();
 
@@ -149,7 +151,8 @@ contract SKCEngine {
         uint256 fundingAmount,
         int128 minReputation,
         string calldata reputationTag,
-        address creator
+        address creator,
+        string calldata queryChain
     ) external onlyProtocolAPI returns (uint256 queryId) {
         if (alpha == 0 || alpha >= WAD) revert InvalidParameters();
         if (bondAmount == 0) revert InvalidParameters();
@@ -176,6 +179,7 @@ contract SKCEngine {
         q.createdAt = block.timestamp;
         q.minReputation = minReputation;
         q.reputationTag = reputationTag;
+        q.queryChain = queryChain;
 
         emit QueryCreated(queryId, question, alpha, initialPrice, creator);
     }
@@ -195,6 +199,9 @@ contract SKCEngine {
         if (hasReported[queryId][reporter]) revert AlreadyReported();
         if (bondAmount < q.bondAmount) revert InvalidParameters();
         if (probability < MIN_PROBABILITY || probability > MAX_PROBABILITY) revert InvalidProbability();
+
+        // Check agent bond is on the same chain as the query
+        if (keccak256(bytes(sourceChain)) != keccak256(bytes(q.queryChain))) revert ChainMismatch();
 
         // Check agent is registered via ERC-8004
         if (!agentRegistry.isRegisteredAgent(reporter)) revert AgentNotRegistered();

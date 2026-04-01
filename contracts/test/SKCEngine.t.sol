@@ -75,7 +75,8 @@ contract SKCEngineTest is Test {
             5e18,       // fundingAmount
             0,          // no reputation threshold
             "",         // no reputation tag
-            builder     // creator
+            builder,    // creator
+            "eip155:10143" // queryChain
         );
     }
 
@@ -92,7 +93,8 @@ contract SKCEngineTest is Test {
             5e18,           // fundingAmount
             0,
             "",
-            builder
+            builder,
+            "eip155:10143"
         );
     }
 
@@ -102,12 +104,12 @@ contract SKCEngineTest is Test {
         address stranger = makeAddr("stranger");
         vm.prank(stranger);
         vm.expectRevert(SKCEngine.NotAuthorized.selector);
-        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder);
+        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
     }
 
     function test_apiGated_protocolAPI_succeeds() public {
         vm.prank(protocolAPI);
-        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder);
+        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
         assertEq(queryId, 0);
     }
 
@@ -116,7 +118,7 @@ contract SKCEngineTest is Test {
 
         address anyone = makeAddr("anyone");
         vm.prank(anyone);
-        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", anyone);
+        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", anyone, "eip155:10143");
         assertEq(queryId, 0);
     }
 
@@ -140,13 +142,13 @@ contract SKCEngineTest is Test {
     function test_createQuery_revert_invalidAlpha() public {
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.InvalidParameters.selector);
-        engine.createQuery("Q", 0, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder);
+        engine.createQuery("Q", 0, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
     }
 
     function test_createQuery_revert_invalidProbability() public {
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.InvalidProbability.selector);
-        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, WAD, 5e18, 0, "", builder);
+        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, WAD, 5e18, 0, "", builder, "eip155:10143");
     }
 
     // ========== Submit Report Tests ==========
@@ -155,7 +157,7 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         (uint256 agentId, address reporter, uint256 probability, , , , ,) = engine.getReport(queryId, 0);
         assertEq(agentId, 1);
@@ -170,18 +172,18 @@ contract SKCEngineTest is Test {
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.AgentNotRegistered.selector);
-        engine.submitReport(queryId, 0.7e18, unregistered, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, unregistered, 0.1e18, "eip155:10143");
     }
 
     function test_submitReport_revert_alreadyReported() public {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.AlreadyReported.selector);
-        engine.submitReport(queryId, 0.8e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent1, 0.1e18, "eip155:10143");
     }
 
     function test_submitReport_revert_invalidProbability() public {
@@ -189,7 +191,7 @@ contract SKCEngineTest is Test {
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.InvalidProbability.selector);
-        engine.submitReport(queryId, WAD, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, WAD, agent1, 0.1e18, "eip155:10143");
     }
 
     function test_submitReport_revert_notAPI() public {
@@ -197,14 +199,14 @@ contract SKCEngineTest is Test {
 
         vm.prank(agent1);
         vm.expectRevert(SKCEngine.NotAuthorized.selector);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
     }
 
     function test_submitReport_updatesPrice() public {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         (, uint256 currentPrice, , , ,) = engine.getQueryInfo(queryId);
         assertEq(currentPrice, 0.7e18);
@@ -216,10 +218,10 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:42161");
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -232,7 +234,7 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         address stranger = makeAddr("stranger");
         vm.prank(stranger);
@@ -246,13 +248,13 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.3e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.3e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent3, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent3, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -267,13 +269,13 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.6e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.6e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent3, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent3, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -286,10 +288,10 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -304,7 +306,7 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.QueryNotResolved.selector);
@@ -315,10 +317,10 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -337,10 +339,10 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -364,12 +366,13 @@ contract SKCEngineTest is Test {
             5e18,
             5000,           // minReputation = 50.00
             "governance",
-            builder
+            builder,
+            "eip155:10143"
         );
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.AgentNotEligible.selector);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
     }
 
     // ========== Admin Tests ==========
@@ -385,6 +388,16 @@ contract SKCEngineTest is Test {
         assertFalse(engine.apiGated());
     }
 
+    // ========== Chain Mismatch Tests ==========
+
+    function test_submitReport_revert_chainMismatch() public {
+        uint256 queryId = _createQueryNoRandomStop(); // queryChain = "eip155:10143"
+
+        vm.prank(protocolAPI);
+        vm.expectRevert(SKCEngine.ChainMismatch.selector);
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:84532"); // Base != Monad
+    }
+
     // ========== Query Active State Tests ==========
 
     function test_isQueryActive() public {
@@ -392,7 +405,7 @@ contract SKCEngineTest is Test {
         assertTrue(engine.isQueryActive(queryId));
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
@@ -403,14 +416,14 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         vm.prank(protocolAPI);
         engine.forceResolve(queryId);
 
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.QueryNotActive.selector);
-        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
     }
 
     // ========== Source Chain Tracking ==========
@@ -419,9 +432,9 @@ contract SKCEngineTest is Test {
         uint256 queryId = _createQueryNoRandomStop();
 
         vm.prank(protocolAPI);
-        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:8453");
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
 
         (, , , , , , string memory sourceChain,) = engine.getReport(queryId, 0);
-        assertEq(sourceChain, "eip155:8453");
+        assertEq(sourceChain, "eip155:10143");
     }
 }
