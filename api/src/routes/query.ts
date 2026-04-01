@@ -32,11 +32,15 @@ query.post("/create", async (c) => {
       minReputation = 0,
       reputationTag = "",
       creator,
+      queryChain,       // chain where payments happen (auto-detected or specified)
     } = body;
 
     if (!question) return c.json({ error: "question is required" }, 400);
     if (!creator) return c.json({ error: "creator address is required" }, 400);
     if (!bondPool) return c.json({ error: "bondPool is required" }, 400);
+
+    // Determine query chain from payment or request body
+    const chain = queryChain || "eip155:10143"; // default to Monad
 
     // Calculate fees
     const charge = calculateCreationCharge(BigInt(bondPool));
@@ -60,6 +64,7 @@ query.post("/create", async (c) => {
         minReputation: BigInt(minReputation),
         reputationTag,
         creator: creator as Address,
+        queryChain: chain,
       });
 
       updateTx(tx.id, { state: "hub_confirmed", hubTxHash: result.hash });

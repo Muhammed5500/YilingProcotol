@@ -5,7 +5,7 @@ import { config } from "../config.js";
 // Minimal ABIs for Hub contract interaction
 const skcEngineAbi = parseAbi([
   // Core functions (API-gated)
-  "function createQuery(string question, uint256 alpha, uint256 k, uint256 flatReward, uint256 bondAmount, uint256 liquidityParam, uint256 initialPrice, uint256 fundingAmount, int128 minReputation, string reputationTag, address creator) external returns (uint256)",
+  "function createQuery(string question, uint256 alpha, uint256 k, uint256 flatReward, uint256 bondAmount, uint256 liquidityParam, uint256 initialPrice, uint256 fundingAmount, int128 minReputation, string reputationTag, address creator, string queryChain) external returns (uint256)",
   "function submitReport(uint256 queryId, uint256 probability, address reporter, uint256 bondAmount, string sourceChain) external",
   "function recordPayoutClaim(uint256 queryId, address reporter) external",
   "function forceResolve(uint256 queryId) external",
@@ -81,6 +81,7 @@ export async function createQuery(params: {
   minReputation: bigint;
   reputationTag: string;
   creator: Address;
+  queryChain: string;
 }) {
   if (!walletClient) throw new Error("Wallet not configured");
 
@@ -100,6 +101,7 @@ export async function createQuery(params: {
       params.minReputation,
       params.reputationTag,
       params.creator,
+      params.queryChain,
     ],
     gas: 1_000_000n,
   });
