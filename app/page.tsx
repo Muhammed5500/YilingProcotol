@@ -190,7 +190,7 @@ function Hero() {
                 <span className="w-2 h-2 rounded-full bg-[#8100D1] animate-pulse" />
                 Hub on Monad
               </span>
-              {["Base", "Arbitrum", "Optimism", "Ethereum", "Polygon", "Avalanche", "Solana"].map((chain) => (
+              {["Base", "Solana"].map((chain) => (
                 <span key={chain} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-text-muted text-[11px] font-medium">
                   {chain}
                 </span>
@@ -220,7 +220,7 @@ function Hero() {
             {[
               { value: agents, label: "Agents Onboarded" },
               { value: "0", label: "Oracles Needed" },
-              { value: "7+", label: "Chains Supported" },
+              { value: "3", label: "Chains Supported" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
                 <span className="font-heading font-bold text-2xl sm:text-3xl tracking-tight text-text">{stat.value}</span>
