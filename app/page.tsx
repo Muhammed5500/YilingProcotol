@@ -185,16 +185,24 @@ function Hero() {
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 pt-2">
-            <div className="flex items-center justify-center gap-3 flex-wrap">
+            <div className="flex items-center justify-center gap-3">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#8100D1]/10 border border-[#8100D1]/20 text-[#8100D1] text-[13px] font-semibold">
                 <span className="w-2 h-2 rounded-full bg-[#8100D1] animate-pulse" />
-                Hub on Monad
+                Monad
               </span>
-              {["Base", "Solana"].map((chain) => (
-                <span key={chain} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-text-muted text-[11px] font-medium">
-                  {chain}
-                </span>
-              ))}
+            </div>
+            <div className="relative w-full max-w-md overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)" }}>
+              <div className="flex animate-[marquee_20s_linear_infinite] w-max gap-3">
+                {[...Array(2)].map((_, setIdx) => (
+                  <div key={setIdx} className="flex gap-3">
+                    {["Base", "Solana", "Arbitrum", "Optimism", "Ethereum", "Polygon", "Avalanche", "Stellar", "Sui", "Aptos"].map((chain) => (
+                      <span key={`${setIdx}-${chain}`} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-text-muted text-[11px] font-medium whitespace-nowrap opacity-50">
+                        {chain}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
             <p className="text-center text-[10px] text-text-muted tracking-[0.15em] uppercase mt-1 font-medium">Pay from any chain via x402</p>
           </motion.div>
