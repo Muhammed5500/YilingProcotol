@@ -106,7 +106,6 @@ const SKC_ENGINE = "0x71EA60Eec62A5ba315fb94cbf3Ee177Bf8709B86";
 
 function useOnChainStats() {
   const [agents, setAgents] = useState<string>("—");
-  const [queries, setQueries] = useState<string>("—");
 
   useEffect(() => {
     async function fetchStats() {
@@ -126,18 +125,6 @@ function useOnChainStats() {
           setAgents(String(parseInt(agentData.result, 16)));
         }
 
-        const queryRes = await fetch(MONAD_RPC, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0", id: 2, method: "eth_call",
-            params: [{ to: SKC_ENGINE, data: "0x9b2aded4" }, "latest"] // queryCount()
-          }),
-        });
-        const queryData = await queryRes.json();
-        if (queryData.result) {
-          setQueries(String(parseInt(queryData.result, 16)));
-        }
       } catch {
         // silently fail, keep defaults
       }
@@ -147,13 +134,13 @@ function useOnChainStats() {
     return () => clearInterval(interval);
   }, []);
 
-  return { agents, queries };
+  return { agents };
 }
 
 // ─── Hero ───────────────────────────────────────────────────────────────────
 
 function Hero() {
-  const { agents, queries } = useOnChainStats();
+  const { agents } = useOnChainStats();
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center pt-36 pb-16">
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
@@ -232,7 +219,7 @@ function Hero() {
           <motion.div variants={fadeUp} className="flex items-center justify-center gap-12 pt-10">
             {[
               { value: agents, label: "Agents Onboarded" },
-              { value: queries, label: "Queries Created" },
+              { value: "0", label: "Oracles Needed" },
               { value: "7+", label: "Chains Supported" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
