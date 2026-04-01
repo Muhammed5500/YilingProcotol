@@ -104,6 +104,7 @@ contract SKCEngine {
     error InvalidParameters();
     error AgentNotRegistered();
     error AgentNotEligible();
+    error InsufficientFunding();
     error ForceResolveNotReady();
     error NoPayout();
 
@@ -154,6 +155,10 @@ contract SKCEngine {
         if (bondAmount == 0) revert InvalidParameters();
         if (liquidityParam == 0) revert InvalidParameters();
         if (initialPrice < MIN_PROBABILITY || initialPrice > MAX_PROBABILITY) revert InvalidProbability();
+
+        // Minimum funding per SKC paper: b·ln(2) + k·R
+        uint256 minFunding = (liquidityParam * uint256(FixedPointMath.LN2_WAD)) / WAD + (flatReward * k);
+        if (fundingAmount < minFunding) revert InsufficientFunding();
 
         queryId = queryCount++;
 
