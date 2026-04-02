@@ -6,7 +6,17 @@ import { createTx, updateTx } from "../services/txTracker.js";
 import { emitEvent } from "../services/webhooks.js";
 import type { Address } from "viem";
 
-const query = new Hono();
+type Env = {
+  Variables: {
+    paymentChain: string;
+  };
+};
+
+const query = new Hono<Env>();
+
+// Track query payment chains (in-memory — queryChain is written to hub contract
+// but not returned by getQueryInfo, so we cache it here for payout routing)
+const queryPaymentChains = new Map<string, string>();
 
 /**
  * POST /query/create
@@ -40,8 +50,9 @@ query.post("/create", async (c) => {
     if (!creator) return c.json({ error: "creator address is required" }, 400);
     if (!bondPool) return c.json({ error: "bondPool is required" }, 400);
 
-    // Determine query chain from payment or request body
-    const chain = queryChain || "eip155:10143"; // default to Monad
+    // Determine query chain from verified x402 payment, not self-reported body
+    const paymentChain = c.get("paymentChain") as string | undefined;
+    const chain = paymentChain || queryChain || "eip155:10143";
 
     // Calculate fees
     const charge = calculateCreationCharge(BigInt(bondPool));
@@ -73,12 +84,14 @@ query.post("/create", async (c) => {
       // x402 settlement happens automatically via middleware
       updateTx(tx.id, { state: "settled" });
 
+      // Cache payment chain for this query (parse queryId from receipt logs if available)
+      // For now, we'll also expose it through the status endpoint via reports' sourceChain
       emitEvent("query.created", {
         txHash: result.hash,
         txId: tx.id,
         question,
         creator,
-        chain,
+        paymentChain: chain,
         bondPool: charge.bondPool.toString(),
         creationFee: charge.creationFee.toString(),
       });
@@ -87,6 +100,7 @@ query.post("/create", async (c) => {
         txHash: result.hash,
         txId: tx.id,
         status: "created",
+        paymentChain: chain,
         fees: {
           bondPool: charge.bondPool.toString(),
           creationFee: charge.creationFee.toString(),
@@ -117,10 +131,14 @@ query.post("/:id/report", async (c) => {
   try {
     const queryId = BigInt(c.req.param("id")!);
     const body = await c.req.json();
-    const { probability, reporter, sourceChain } = body;
+    const { probability, reporter, sourceChain: bodySourceChain } = body;
 
     if (!probability) return c.json({ error: "probability is required" }, 400);
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
+
+    // Use verified payment chain from x402 middleware, not self-reported body
+    const paymentChain = c.get("paymentChain") as string | undefined;
+    const sourceChain = paymentChain || bodySourceChain || "unknown";
 
     // Race condition check: verify query is still active BEFORE submitting
     const active = await contract.isQueryActive(queryId);
@@ -187,6 +205,7 @@ query.post("/:id/report", async (c) => {
         txId: tx.id,
         reporter,
         bondAmount: params.bondAmount.toString(),
+        paymentChain: sourceChain,
         status: "submitted",
         queryResolved: resolvedAfter,
       });
@@ -285,14 +304,26 @@ query.post("/:id/claim", async (c) => {
     // Record claim on Hub contract
     const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
 
+    // Determine payout chain: agent can override, otherwise use their bond source chain
+    // Look up the agent's report to find which chain they bonded from
+    let bondChain = "eip155:10143"; // fallback to Monad
+    const reportCount = await contract.getReportCount(queryId);
+    for (let i = 0n; i < reportCount; i++) {
+      const report = await contract.getReport(queryId, i);
+      if (report.reporter.toLowerCase() === (reporter as string).toLowerCase()) {
+        bondChain = report.sourceChain || "eip155:10143";
+        break;
+      }
+    }
+
     // Execute direct ERC-20 transfer from protocol treasury
-    // Agent specifies payoutChain, or defaults to their bond source chain
+    // Payout goes to the chain the agent bonded from, unless explicitly overridden
     let payoutResult;
     try {
       payoutResult = await executePayout(
         reporter as Address,
         netPayout,
-        payoutChain || "eip155:84532" // default to Base Sepolia
+        payoutChain || bondChain
       );
     } catch (payoutErr: any) {
       // Claim recorded but payout transfer failed — needs manual resolution

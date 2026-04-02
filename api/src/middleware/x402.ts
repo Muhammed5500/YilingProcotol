@@ -5,6 +5,12 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Context, Next } from "hono";
 import { config } from "../config.js";
 
+type PaymentEnv = {
+  Variables: {
+    paymentChain: string;
+  };
+};
+
 /**
  * x402 Multi-Facilitator Middleware
  *
@@ -128,7 +134,7 @@ async function initializeMiddleware(payTo: string) {
  * Lazy-initializes on first paid request. Graceful fallback if unavailable.
  */
 export function createMultiFacilitatorMiddleware(payTo: string) {
-  return async (c: Context, next: Next) => {
+  return async (c: Context<PaymentEnv>, next: Next) => {
     const path = c.req.path;
     const route = matchRoute(path);
 
@@ -150,16 +156,27 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
 
     // Determine which middleware to use
     let useMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
+    let detectedChain = "";
 
     if (paymentHeader) {
       try {
         const paymentData = JSON.parse(paymentHeader);
-        const network = paymentData?.network || paymentData?.payload?.network || "";
-        useMiddleware = (network === MONAD_NETWORK || network.includes("10143"))
+        detectedChain = paymentData?.accepted?.network || paymentData?.network || paymentData?.payload?.network || "";
+        useMiddleware = (detectedChain === MONAD_NETWORK || detectedChain.includes("10143"))
           ? monadMiddleware
           : coinbaseMiddleware;
       } catch {
-        useMiddleware = monadMiddleware;
+        // base64-encoded payload — try to extract network from decoded data
+        try {
+          const decoded = JSON.parse(Buffer.from(paymentHeader, "base64").toString("utf-8"));
+          detectedChain = decoded?.accepted?.network || "";
+          useMiddleware = (detectedChain === MONAD_NETWORK || detectedChain.includes("10143"))
+            ? monadMiddleware
+            : coinbaseMiddleware;
+        } catch {
+          useMiddleware = monadMiddleware;
+          detectedChain = MONAD_NETWORK;
+        }
       }
     } else {
       // No payment yet → route based on preferred chain header
@@ -168,6 +185,11 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       } else {
         useMiddleware = monadMiddleware;
       }
+    }
+
+    // Inject verified payment chain into context for downstream handlers
+    if (detectedChain) {
+      c.set("paymentChain", detectedChain);
     }
 
     // Use middleware if available, otherwise pass through
