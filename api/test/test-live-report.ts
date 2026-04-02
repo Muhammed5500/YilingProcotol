@@ -31,7 +31,7 @@ const publicClient = createPublicClient({
 
 const client = new x402Client();
 const signer = toClientEvmSigner(account, publicClient);
-registerExactEvmScheme(client, signer);
+registerExactEvmScheme(client, { signer });
 
 const httpClient = new x402HTTPClient(client);
 const x402Fetch = wrapFetchWithPayment(fetch, httpClient);

@@ -14,10 +14,25 @@
 
 import { predict } from "./strategy.js";
 import { config } from "./config.js";
-import { wrapFetch } from "@x402/fetch";
+import { x402Client, x402HTTPClient, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { toClientEvmSigner } from "@x402/evm";
+import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, http } from "viem";
 
 // x402-enabled fetch — automatically handles 402 Payment Required responses
-const x402Fetch = wrapFetch(fetch, config.privateKey);
+const account = privateKeyToAccount(config.privateKey as `0x${string}`);
+const publicClient = createPublicClient({
+  chain: {
+    id: 10143, name: "Monad Testnet",
+    nativeCurrency: { name: "MON", symbol: "MON", decimals: 18 },
+    rpcUrls: { default: { http: ["https://testnet-rpc.monad.xyz"] } },
+  },
+  transport: http("https://testnet-rpc.monad.xyz"),
+});
+const _client = new x402Client();
+registerExactEvmScheme(_client, { signer: toClientEvmSigner(account, publicClient) });
+const x402Fetch = wrapFetchWithPayment(fetch, new x402HTTPClient(_client));
 
 interface Query {
   queryId: string;

@@ -66,7 +66,7 @@ async function main() {
 
   const client = new x402Client();
   const signer = toClientEvmSigner(account, publicClient);
-  registerExactEvmScheme(client, signer);
+  registerExactEvmScheme(client, { signer });
 
   console.log("Signer address:", signer.address);
   console.log("Client schemes:", [...client.registeredClientSchemes.keys()]);

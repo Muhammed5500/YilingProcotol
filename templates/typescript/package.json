@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "tsx": "^4.19.0",
-    "@x402/fetch": "^2.8.0"
+    "@x402/fetch": "^2.8.0",
+    "@x402/evm": "^2.8.0",
+    "viem": "^2.23.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
