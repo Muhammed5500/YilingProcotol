@@ -2,10 +2,10 @@
  * Yiling Protocol Agent Runner
  *
  * Automatically:
- *   1. Discovers active queries
- *   2. Runs your strategy to generate predictions
- *   3. Submits reports via the Protocol API
- *   4. Claims payouts after resolution
+ *   1. Connects to SSE stream for real-time query notifications
+ *   2. Falls back to polling if SSE disconnects
+ *   3. Runs your strategy to generate predictions
+ *   4. Submits reports via the Protocol API
  *
  * You only need to modify strategy.ts — this file handles everything else.
  */
@@ -28,6 +28,8 @@ interface Report {
   priceBefore: string;
   priceAfter: string;
 }
+
+// ─── API Helpers ────────────────────────────────────────────
 
 async function getActiveQueries(): Promise<Query[]> {
   const res = await fetch(`${config.apiUrl}/queries/active`);
@@ -70,6 +72,81 @@ function parseReports(reports: Report[]) {
   }));
 }
 
+// ─── Process a single query ─────────────────────────────────
+
+async function processQuery(queryId: string) {
+  const status = await getQueryStatus(queryId);
+
+  if (status.resolved) return;
+  if (hasAlreadyReported(status.reports)) return;
+
+  const currentPrice = Number(status.currentPrice) / 1e18;
+  const reports = parseReports(status.reports);
+
+  let probability = predict(status.question, reports, currentPrice);
+  probability = Math.max(0.02, Math.min(0.98, probability));
+
+  console.log(`  Query #${queryId}: '${status.question}'`);
+  console.log(`    Current price: ${currentPrice.toFixed(4)}`);
+  console.log(`    My prediction: ${probability.toFixed(4)}`);
+
+  const result = await submitReport(queryId, probability);
+  console.log(`    Submitted! tx: ${result.txHash || result.error}`);
+}
+
+// ─── SSE Stream ─────────────────────────────────────────────
+
+function connectSSE(): EventSource | null {
+  const url = `${config.apiUrl}/events/stream`;
+
+  try {
+    const es = new EventSource(url);
+
+    es.onopen = () => {
+      console.log("[SSE] Connected — listening for new queries");
+    };
+
+    es.addEventListener("query.created", async (e) => {
+      const { data } = JSON.parse(e.data);
+      console.log(`\n[SSE] New query! "${data.question}"`);
+
+      try {
+        // Small delay to let chain state settle
+        await new Promise((r) => setTimeout(r, 2000));
+        await processQuery(data.txId || data.queryId);
+      } catch (err: any) {
+        console.log(`[SSE] Error processing query: ${err.message}`);
+      }
+    });
+
+    es.onerror = () => {
+      console.log("[SSE] Connection lost — falling back to polling");
+      es.close();
+    };
+
+    return es;
+  } catch {
+    console.log("[SSE] Could not connect — using polling only");
+    return null;
+  }
+}
+
+// ─── Polling Fallback ───────────────────────────────────────
+
+async function pollOnce() {
+  const queries = await getActiveQueries();
+
+  if (queries.length > 0) {
+    console.log(`[Poll] Found ${queries.length} active queries`);
+  }
+
+  for (const q of queries) {
+    await processQuery(q.queryId);
+  }
+}
+
+// ─── Main Loop ──────────────────────────────────────────────
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -79,44 +156,35 @@ async function run() {
   console.log(`  Wallet: ${config.walletAddress}`);
   console.log(`  API: ${config.apiUrl}`);
   console.log(`  Chain: ${config.sourceChain}`);
-  console.log(`  Poll interval: ${config.pollIntervalMs}ms`);
   console.log();
 
+  // Try SSE first
+  let sse = connectSSE();
+
+  // Polling loop as fallback (also catches anything SSE missed)
   while (true) {
     try {
-      const queries = await getActiveQueries();
-
-      if (queries.length > 0) {
-        console.log(`Found ${queries.length} active queries`);
+      // If SSE is disconnected, try to reconnect
+      if (!sse || sse.readyState === EventSource.CLOSED) {
+        sse = connectSSE();
       }
 
-      for (const q of queries) {
-        const status = await getQueryStatus(q.queryId);
-
-        if (hasAlreadyReported(status.reports)) continue;
-
-        const currentPrice = Number(status.currentPrice) / 1e18;
-        const reports = parseReports(status.reports);
-
-        let probability = predict(status.question, reports, currentPrice);
-        probability = Math.max(0.02, Math.min(0.98, probability));
-
-        console.log(`  Query #${q.queryId}: '${status.question}'`);
-        console.log(`    Current price: ${currentPrice.toFixed(4)}`);
-        console.log(`    My prediction: ${probability.toFixed(4)}`);
-
-        const result = await submitReport(q.queryId, probability);
-        console.log(`    Submitted! tx: ${result.txHash}`);
-      }
+      // Always poll occasionally as safety net
+      await pollOnce();
     } catch (err: any) {
       if (err.cause?.code === "ECONNREFUSED") {
-        console.log("Cannot reach API, retrying...");
+        console.log("[Poll] Cannot reach API, retrying...");
       } else {
-        console.log(`Error: ${err.message}`);
+        console.log(`[Poll] Error: ${err.message}`);
       }
     }
 
-    await sleep(config.pollIntervalMs);
+    // Poll less frequently when SSE is active
+    const interval = sse?.readyState === EventSource.OPEN
+      ? config.pollIntervalMs * 6  // 60s when SSE is working
+      : config.pollIntervalMs;      // 10s when SSE is down
+
+    await sleep(interval);
   }
 }
 

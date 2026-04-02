@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { broadcast } from "./eventStream.js";
 
 /**
  * Webhook/Event System for Yiling Protocol
@@ -94,6 +95,10 @@ export async function emitEvent(type: string, data: Record<string, any>) {
     data,
   };
 
+  // SSE: push to all connected agents instantly
+  broadcast(type, data);
+
+  // Webhooks: push to registered builder endpoints
   const matchingWebhooks = Array.from(webhooks.values()).filter(
     (wh) => wh.active && wh.events.includes(type)
   );

@@ -56,6 +56,23 @@ app.get("/queries/active", async (c) => {
   }
 });
 
+// SSE event stream for agents (free)
+app.get("/events/stream", async (c) => {
+  const { addClient } = await import("./services/eventStream.js");
+  const { id, stream } = addClient();
+
+  console.log(`[SSE] Agent connected: ${id}`);
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "X-Client-Id": id,
+    },
+  });
+});
+
 // Treasury balances (admin)
 app.get("/treasury/balances", async (c) => {
   try {
@@ -108,6 +125,7 @@ app.get("/", (c) => {
       "GET /queries/active": "List all active queries (free)",
       "GET /agent/:address/status": "Check agent registration status (free)",
       "GET /agent/:id/reputation": "Get agent reputation score (free)",
+      "GET /events/stream": "Real-time SSE event stream for agents (free)",
       "GET /health": "Health check (free)",
     },
   });
