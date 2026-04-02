@@ -12,8 +12,7 @@ export const config = {
   reputationManagerAddress: process.env.REPUTATION_MANAGER_ADDRESS || "",
 
   // x402 (inbound payments only — pull protocol, cannot push payouts)
-  facilitatorUrl: process.env.X402_FACILITATOR_URL || "https://x402.org/facilitator",
-  facilitatorFallbackUrl: process.env.X402_FACILITATOR_FALLBACK_URL || "https://api.cdp.coinbase.com/platform/v2/x402",
+  facilitatorUrl: process.env.X402_FACILITATOR_URL || "https://www.x402.org/facilitator",
   monadFacilitatorUrl: process.env.MONAD_FACILITATOR_URL || "https://x402-facilitator.molandak.org",
   treasuryAddress: process.env.TREASURY_ADDRESS || "",
 
