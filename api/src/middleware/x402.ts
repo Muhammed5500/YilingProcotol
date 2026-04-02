@@ -123,25 +123,12 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
 
     const paymentHeader = c.req.header("X-PAYMENT") || c.req.header("x-payment");
 
-    // No payment → return 402 with ALL networks
+    // No payment → get proper 402 from Monad middleware, client picks any chain
+    // Monad middleware generates SDK-compatible 402 format
+    // Client sees Monad in 402 → pays from Monad, Base, or Solana
+    // When payment arrives, we route to correct facilitator
     if (!paymentHeader) {
-      const cfg = paidRoutes[route];
-      const accepts = allNetworks.map((network) => ({
-        scheme: "exact",
-        network,
-        maxAmountRequired: cfg.price,
-        resource: c.req.url,
-        payTo,
-      }));
-
-      return c.json(
-        {
-          x402Version: 2,
-          accepts,
-          error: "X-PAYMENT header is required",
-        },
-        { status: 402 }
-      );
+      return monadMiddleware(c, next);
     }
 
     // Has payment → route to correct facilitator
