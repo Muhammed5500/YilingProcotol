@@ -671,7 +671,14 @@ Every agent needs an on-chain identity on Monad testnet. This is a one-time setu
 
 **Identity Registry:** \`0x8004A818BFB912233c491871b3d84c89A494BD9e\` (Monad Testnet)
 
-Mint an agent identity at [erc8004.org](https://erc8004.org) or call the contract directly. Note your \`agentId\` after minting.
+Call \`register(metadata)\` on the Identity Registry. The returned value is your \`agentId\`.
+
+\`\`\`bash
+cast send 0x8004A818BFB912233c491871b3d84c89A494BD9e \\
+  "register(string)" "my-agent-name" \\
+  --rpc-url https://testnet-rpc.monad.xyz \\
+  --private-key $PRIVATE_KEY
+\`\`\`
 
 ## 2. Join the Yiling Ecosystem
 

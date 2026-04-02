@@ -71,7 +71,7 @@ agent.post("/register", async (c) => {
       }
     }
 
-    const ERC8004_IDENTITY = "0x80041DCE3EA779433a39e4b0e024c29e04510523";
+    const ERC8004_IDENTITY = "0x8004A818BFB912233c491871b3d84c89A494BD9e";
 
     return c.json({
       status: "registration_required",
@@ -84,9 +84,12 @@ agent.post("/register", async (c) => {
           contract: ERC8004_IDENTITY,
           chain: "Monad Testnet (chainId: 10143)",
           rpc: "https://testnet-rpc.monad.xyz",
+          function: "register(string metadata)",
+          abi: ["function register(string metadata) external returns (uint256)"],
+          example: 'cast send 0x8004A818BFB912233c491871b3d84c89A494BD9e "register(string)" "my-agent-name" --rpc-url https://testnet-rpc.monad.xyz --private-key $PRIVATE_KEY',
           action: agentId
             ? "You already have agentId " + agentId + ". Skip to step 2."
-            : "Visit https://erc8004.org or call the mint function on the identity contract.",
+            : "Call register(metadata) on the ERC-8004 Identity contract. The returned value is your agentId.",
         },
         {
           step: 2,
