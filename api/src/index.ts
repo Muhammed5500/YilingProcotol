@@ -77,6 +77,17 @@ app.get("/admin/transactions", async (c) => {
   });
 });
 
+// Manual retry trigger (admin)
+app.post("/admin/transactions/retry", async (c) => {
+  const { getRetryable, startRetryJob } = await import("./services/txTracker.js");
+  const retryable = getRetryable();
+  if (retryable.length === 0) {
+    return c.json({ message: "No retryable transactions" });
+  }
+  startRetryJob(0); // trigger immediately via job
+  return c.json({ message: `Retry triggered for ${retryable.length} transactions`, ids: retryable.map(tx => tx.id) });
+});
+
 // Root
 app.get("/", (c) => {
   return c.json({
@@ -104,6 +115,10 @@ app.get("/", (c) => {
 
 // Start server
 console.log(`Yiling Protocol API starting on port ${config.port}...`);
-serve({ fetch: app.fetch, port: config.port }, (info) => {
+serve({ fetch: app.fetch, port: config.port }, async (info) => {
   console.log(`Yiling Protocol API running at http://localhost:${info.port}`);
+
+  // Start background retry job for failed settlements (every 60s)
+  const { startRetryJob } = await import("./services/txTracker.js");
+  startRetryJob();
 });

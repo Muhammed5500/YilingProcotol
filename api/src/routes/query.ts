@@ -3,6 +3,7 @@ import * as contract from "../services/contract.js";
 import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js";
 import { executePayout } from "../services/payout.js";
 import { createTx, updateTx } from "../services/txTracker.js";
+import { emitEvent } from "../services/webhooks.js";
 import type { Address } from "viem";
 
 const query = new Hono();
@@ -71,6 +72,16 @@ query.post("/create", async (c) => {
 
       // x402 settlement happens automatically via middleware
       updateTx(tx.id, { state: "settled" });
+
+      emitEvent("query.created", {
+        txHash: result.hash,
+        txId: tx.id,
+        question,
+        creator,
+        chain,
+        bondPool: charge.bondPool.toString(),
+        creationFee: charge.creationFee.toString(),
+      });
 
       return c.json({
         txHash: result.hash,
@@ -153,6 +164,22 @@ query.post("/:id/report", async (c) => {
       updateTx(tx.id, { state: "settled" });
 
       const resolvedAfter = !(await contract.isQueryActive(queryId));
+
+      emitEvent("report.submitted", {
+        queryId: queryId.toString(),
+        txHash: result.hash,
+        reporter,
+        probability,
+        bondAmount: params.bondAmount.toString(),
+        sourceChain: sourceChain || "unknown",
+      });
+
+      if (resolvedAfter) {
+        emitEvent("query.resolved", {
+          queryId: queryId.toString(),
+          txHash: result.hash,
+        });
+      }
 
       return c.json({
         queryId: queryId.toString(),
@@ -283,6 +310,16 @@ query.post("/:id/claim", async (c) => {
       }, 202);
     }
 
+    emitEvent("payout.claimed", {
+      queryId: queryId.toString(),
+      reporter,
+      gross: grossPayout.toString(),
+      rake: rake.toString(),
+      net: netPayout.toString(),
+      chain: payoutResult.chain,
+      payoutTxHash: payoutResult.txHash,
+    });
+
     return c.json({
       queryId: queryId.toString(),
       reporter,
@@ -366,6 +403,11 @@ query.post("/:id/resolve", async (c) => {
   try {
     const queryId = BigInt(c.req.param("id")!);
     const result = await contract.forceResolve(queryId);
+
+    emitEvent("query.resolved", {
+      queryId: queryId.toString(),
+      txHash: result.hash,
+    });
 
     return c.json({
       queryId: queryId.toString(),

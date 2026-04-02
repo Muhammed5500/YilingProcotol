@@ -38,12 +38,20 @@ monadScheme.registerMoneyParser(async (amount: number, network: string) => {
 const monadServer = new x402ResourceServer(monadFacilitator)
   .register(MONAD_NETWORK, monadScheme);
 
-// ─── Coinbase Server ────────────────────────────────────────
+// ─── Coinbase Server (primary + fallback) ───────────────────
 const coinbaseFacilitator = new HTTPFacilitatorClient({
   url: config.facilitatorUrl,
 });
 
 const coinbaseServer = new x402ResourceServer(coinbaseFacilitator)
+  .register("eip155:84532", new ExactEvmScheme())
+  .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());
+
+const coinbaseFallbackFacilitator = new HTTPFacilitatorClient({
+  url: config.facilitatorFallbackUrl,
+});
+
+const coinbaseFallbackServer = new x402ResourceServer(coinbaseFallbackFacilitator)
   .register("eip155:84532", new ExactEvmScheme())
   .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());
 
@@ -111,6 +119,31 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
 
   const monadMiddleware = paymentMiddleware(monadConfig, monadServer);
   const coinbaseMiddleware = paymentMiddleware(coinbaseConfig, coinbaseServer);
+  const coinbaseFallbackMiddleware = paymentMiddleware(coinbaseConfig, coinbaseFallbackServer);
+
+  /**
+   * Try primary middleware, fall back on failure.
+   * Captures the response — if it's a 5xx or throws, retry with fallback.
+   */
+  async function withFallback(
+    primary: (c: Context, next: Next) => Promise<any>,
+    fallback: (c: Context, next: Next) => Promise<any>,
+    c: Context,
+    next: Next,
+  ) {
+    try {
+      const res = await primary(c, next);
+      // If primary returned a server error, try fallback
+      if (res instanceof Response && res.status >= 500) {
+        console.warn("[x402] Primary facilitator returned 5xx, trying fallback…");
+        return fallback(c, next);
+      }
+      return res;
+    } catch (err) {
+      console.warn("[x402] Primary facilitator failed, trying fallback…", err);
+      return fallback(c, next);
+    }
+  }
 
   return async (c: Context, next: Next) => {
     const path = c.req.path;
@@ -130,15 +163,15 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       const preferredChain = c.req.header("X-PREFERRED-CHAIN") || "";
 
       if (preferredChain.includes("84532") || preferredChain.toLowerCase().includes("base")) {
-        return coinbaseMiddleware(c, next);
+        return withFallback(coinbaseMiddleware, coinbaseFallbackMiddleware, c, next);
       } else if (preferredChain.includes("solana")) {
-        return coinbaseMiddleware(c, next);
+        return withFallback(coinbaseMiddleware, coinbaseFallbackMiddleware, c, next);
       } else {
         return monadMiddleware(c, next);
       }
     }
 
-    // Has payment → route to correct facilitator
+    // Has payment → route to correct facilitator with fallback
     try {
       const paymentData = JSON.parse(paymentHeader);
       const network = paymentData?.network || paymentData?.payload?.network || "";
@@ -146,7 +179,7 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       if (network === MONAD_NETWORK || network.includes("10143")) {
         return monadMiddleware(c, next);
       } else {
-        return coinbaseMiddleware(c, next);
+        return withFallback(coinbaseMiddleware, coinbaseFallbackMiddleware, c, next);
       }
     } catch {
       return monadMiddleware(c, next);

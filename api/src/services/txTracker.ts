@@ -111,6 +111,89 @@ export function getTxsByQuery(queryId: string): TxRecord[] {
 }
 
 /**
+ * Retry failed settlements automatically.
+ * Runs on an interval, picks up settlement_failed txs and re-executes payout.
+ * Max 3 retries per tx — after that, requires manual intervention.
+ */
+const MAX_RETRIES = 3;
+const retryAttempts = new Map<string, number>();
+let retryTimer: ReturnType<typeof setInterval> | null = null;
+
+async function retryFailedSettlements() {
+  const retryable = getRetryable();
+  if (retryable.length === 0) return;
+
+  const { executePayout } = await import("./payout.js");
+  const { emitEvent } = await import("./webhooks.js");
+
+  for (const tx of retryable) {
+    const attempts = retryAttempts.get(tx.id) || 0;
+    if (attempts >= MAX_RETRIES) continue;
+
+    retryAttempts.set(tx.id, attempts + 1);
+
+    try {
+      if (!tx.reporter || !tx.amount || !tx.sourceChain) {
+        console.warn(`[txRetry] Skipping ${tx.id}: missing reporter/amount/sourceChain`);
+        continue;
+      }
+
+      console.log(`[txRetry] Attempt ${attempts + 1}/${MAX_RETRIES} for tx ${tx.id}`);
+
+      const result = await executePayout(
+        tx.reporter as `0x${string}`,
+        BigInt(tx.amount),
+        tx.sourceChain,
+      );
+
+      updateTx(tx.id, {
+        state: "settled",
+        settlementTxHash: result.txHash,
+      });
+
+      retryAttempts.delete(tx.id);
+
+      emitEvent("payout.claimed", {
+        queryId: tx.queryId,
+        reporter: tx.reporter,
+        retried: true,
+        payoutTxHash: result.txHash,
+        chain: result.chain,
+      });
+
+      console.log(`[txRetry] ✓ Settled tx ${tx.id} → ${result.txHash}`);
+    } catch (err: any) {
+      console.error(`[txRetry] ✗ Attempt ${attempts + 1} failed for ${tx.id}: ${err.message}`);
+      updateTx(tx.id, { error: `Retry ${attempts + 1} failed: ${err.message}` });
+    }
+  }
+}
+
+/**
+ * Start the retry background job (runs every 60s)
+ */
+export function startRetryJob(intervalMs = 60_000) {
+  if (retryTimer) return;
+  console.log(`[txRetry] Background retry job started (every ${intervalMs / 1000}s)`);
+  retryTimer = setInterval(() => {
+    retryFailedSettlements().catch((err) =>
+      console.error("[txRetry] Job error:", err)
+    );
+  }, intervalMs);
+}
+
+/**
+ * Stop the retry background job
+ */
+export function stopRetryJob() {
+  if (retryTimer) {
+    clearInterval(retryTimer);
+    retryTimer = null;
+    console.log("[txRetry] Background retry job stopped");
+  }
+}
+
+/**
  * Get transaction summary for admin monitoring
  */
 export function getTxSummary(): Record<TxState, number> {
