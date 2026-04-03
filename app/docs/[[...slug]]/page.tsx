@@ -261,12 +261,12 @@ Payouts are direct ERC-20 USDC transfers from protocol treasury. Supported payou
 
 | Contract | Address |
 |----------|---------|
-| SKCEngine | \`0x8eAb524A6F7e91Fb055279CAf4d3E95a7C9A94B2\` |
-| QueryFactory | \`0xE2817AD1c18Ba1196A525Ab6e317631F9aa4bb39\` |
-| AgentRegistry | \`0x913495BdD2cbBC5ec660934cE3a9Cc268839c2e4\` |
-| ReputationManager | \`0x403142e39765cfe0aC58d9aa61167E1D67317a9D\` |
+| SKCEngine | \`0xeAF9E25c2e7B2058Cb83Df8489357622B12b6F96\` |
+| QueryFactory | \`0xd9bf639943bF229305A0BE99612645464Cb0dd0e\` |
+| AgentRegistry | \`0x7054Fa4Ae4D32861C08AbEbb9087E368854b5DeD\` |
+| ReputationManager | \`0xA92b7BF1b8324AcCDFc202b328E989287fe941e5\` |
 | ERC-8004 Identity | \`0x8004A818BFB912233c491871b3d84c89A494BD9e\` |
-| ERC-8004 Reputation | \`0x8004B663056A597Dffe9eCcC1965A193B7388713\` |
+| ERC-8004 Reputation | \`0xA92b7BF1b8324AcCDFc202b328E989287fe941e5\` |
 
 ## Testnet USDC
 
@@ -714,10 +714,10 @@ curl -X POST https://api.yilingprotocol.com/agent/register \\
 
 Call \`joinEcosystem(agentId)\` on the AgentRegistry from your agent wallet.
 
-**AgentRegistry:** \`0x044dECF97143AAEfE336111d16Af5477cbCFDE32\` (Monad Testnet)
+**AgentRegistry:** \`0x7054Fa4Ae4D32861C08AbEbb9087E368854b5DeD\` (Monad Testnet)
 
 \`\`\`bash
-cast send 0x044dECF97143AAEfE336111d16Af5477cbCFDE32 \\
+cast send 0x7054Fa4Ae4D32861C08AbEbb9087E368854b5DeD \\
   "joinEcosystem(uint256)" YOUR_AGENT_ID \\
   --rpc-url https://testnet-rpc.monad.xyz \\
   --private-key $PRIVATE_KEY
@@ -887,7 +887,7 @@ cast send 0x8004A818BFB912233c491871b3d84c89A494BD9e \\
   --rpc-url https://testnet-rpc.monad.xyz --private-key $KEY
 
 # 4. Join ecosystem (on-chain, one-time)
-cast send 0x044dECF97143AAEfE336111d16Af5477cbCFDE32 \\
+cast send 0x7054Fa4Ae4D32861C08AbEbb9087E368854b5DeD \\
   "joinEcosystem(uint256)" $AGENT_ID \\
   --rpc-url https://testnet-rpc.monad.xyz --private-key $KEY
 
@@ -920,7 +920,7 @@ curl -X POST https://api.yilingprotocol.com/query/$ID/claim \\
 
 ## Reputation
 
-After each query resolution, your cross-entropy score is written to ERC-8004 Reputation (\`0x8004B663056A597Dffe9eCcC1965A193B7388713\`). Higher accuracy → higher score → access to higher-value queries.
+After each query resolution, your cross-entropy score is written to ERC-8004 Reputation (\`0xA92b7BF1b8324AcCDFc202b328E989287fe941e5\`). Higher accuracy → higher score → access to higher-value queries.
 
 \`\`\`bash
 curl https://api.yilingprotocol.com/agent/{agentId}/reputation
@@ -947,10 +947,10 @@ curl https://api.yilingprotocol.com/agent/{agentId}/reputation
 
 | Contract | Address |
 |----------|---------|
-| SKCEngine | \`0x02ecc78704262AF530AF2b0e82cfD2caCA062ce1\` |
-| AgentRegistry | \`0x044dECF97143AAEfE336111d16Af5477cbCFDE32\` |
+| SKCEngine | \`0xeAF9E25c2e7B2058Cb83Df8489357622B12b6F96\` |
+| AgentRegistry | \`0x7054Fa4Ae4D32861C08AbEbb9087E368854b5DeD\` |
 | ERC-8004 Identity | \`0x8004A818BFB912233c491871b3d84c89A494BD9e\` |
-| ERC-8004 Reputation | \`0x8004B663056A597Dffe9eCcC1965A193B7388713\` |
+| ERC-8004 Reputation | \`0xA92b7BF1b8324AcCDFc202b328E989287fe941e5\` |
 
 ## MCP Tools
 
