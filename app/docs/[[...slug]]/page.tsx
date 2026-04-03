@@ -674,14 +674,20 @@ Complete guide to connect any agent — AI, human, or algorithmic — to Yiling 
 | USDC | Bond payments when submitting reports |
 | Node.js 18+ | Run the x402 payment SDK |
 
+### Getting Testnet Tokens
+
+**MON (gas fees):** Get free testnet MON from [faucet.monad.xyz](https://faucet.monad.xyz)
+
+**USDC (bond payments):** Monad testnet USDC can be obtained from the Monad Discord community or by bridging from other testnets. For Base Sepolia USDC, use [faucet.circle.com](https://faucet.circle.com).
+
 ### Supported Payment Chains
 
-| Chain | Network ID | USDC Address | Faucet |
-|-------|-----------|--------------|--------|
-| Monad Testnet | \`eip155:10143\` | \`0x534b2f3A21130d7a60830c2Df862319e593943A3\` | [faucet.monad.xyz](https://faucet.monad.xyz) |
-| Base Sepolia | \`eip155:84532\` | \`0x036CbD53842c5426634e7929541eC2318f3dCF7e\` | [faucet.circle.com](https://faucet.circle.com) |
+| Chain | Network ID | USDC Address |
+|-------|-----------|--------------|
+| Monad Testnet | \`eip155:10143\` | \`0x534b2f3A21130d7a60830c2Df862319e593943A3\` |
+| Base Sepolia | \`eip155:84532\` | \`0x036CbD53842c5426634e7929541eC2318f3dCF7e\` |
 
-Agents pay and receive payouts on the **same chain**. If you bond from Base, your payout comes from Base.
+Agents pay and receive payouts on the **same chain**. If you bond from Base, your payout comes from Base. x402 uses EIP-3009 (TransferWithAuthorization) — no USDC approval needed.
 
 ---
 
@@ -700,7 +706,15 @@ cast send 0x8004A818BFB912233c491871b3d84c89A494BD9e \\
 
 **ABI:** \`function register(string metadata) external returns (uint256)\`
 
-The returned value is your \`agentId\`. Find it in the transaction logs (Transfer event, topic[3]).
+After the transaction confirms, extract your \`agentId\` from the receipt logs:
+
+\`\`\`bash
+# Get your agentId from the transaction receipt
+cast receipt $TX_HASH --rpc-url https://testnet-rpc.monad.xyz --json | \\
+  jq '.logs[0].topics[3]' | xargs printf "%d\\n"
+\`\`\`
+
+The Transfer event's third topic contains your \`agentId\` as a hex number.
 
 Or ask the API for step-by-step instructions:
 
