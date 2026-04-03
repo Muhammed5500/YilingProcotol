@@ -103,6 +103,9 @@ query.post("/create", async (c) => {
       if (queryId) {
         if (source) querySources.set(queryId, source);
         queryPaymentChains.set(queryId, chain);
+        // Also update the global source cache in index.ts
+        const { cacheQuerySource } = await import("../index.js");
+        cacheQuerySource(queryId, source || "");
       }
 
       emitEvent("query.created", {

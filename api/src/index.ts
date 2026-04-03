@@ -32,11 +32,56 @@ app.route("/webhooks", webhookRoutes);
 const a2aRoutes = createA2ARoutes(process.env.API_BASE_URL || `https://api.yilingprotocol.com`);
 app.route("/", a2aRoutes);
 
+// ─── Source Cache ──────────────────────────────────────────
+// Cache source per queryId to avoid on-chain calls on every list request
+const sourceCache = new Map<string, string>();
+let sourceCacheWarmed = false;
+
+async function getSourceCached(queryId: bigint): Promise<string> {
+  const key = queryId.toString();
+  if (sourceCache.has(key)) return sourceCache.get(key)!;
+
+  // Cache miss — read from chain and cache
+  const { getQuerySourceOnChain } = await import("./services/contract.js");
+  const source = await getQuerySourceOnChain(queryId);
+  sourceCache.set(key, source);
+  return source;
+}
+
+// Warm cache on first request — read all sources once
+async function warmSourceCache() {
+  if (sourceCacheWarmed) return;
+  try {
+    const { getQueryCount, getQuerySourceOnChain } = await import("./services/contract.js");
+    const total = await getQueryCount();
+    const promises = [];
+    for (let i = 0n; i < total; i++) {
+      const key = i.toString();
+      if (!sourceCache.has(key)) {
+        promises.push(
+          getQuerySourceOnChain(i).then((s) => sourceCache.set(key, s))
+        );
+      }
+    }
+    await Promise.all(promises);
+    sourceCacheWarmed = true;
+  } catch {}
+}
+
+// Export for query.ts to update cache on create
+export function cacheQuerySource(queryId: string, source: string) {
+  sourceCache.set(queryId, source);
+}
+
 // Active queries list (free)
 app.get("/queries/active", async (c) => {
   try {
     const sourceFilter = c.req.query("source");
-    const { getQueryCount, getQueryInfo, getQuerySourceOnChain } = await import("./services/contract.js");
+    const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
+
+    // Warm cache on first call
+    await warmSourceCache();
+
     const totalQueries = await getQueryCount();
     const activeQueries = [];
 
@@ -44,9 +89,8 @@ app.get("/queries/active", async (c) => {
       const info = await getQueryInfo(i);
       if (!info.resolved) {
         const queryId = i.toString();
-        const querySource = await getQuerySourceOnChain(i);
+        const querySource = sourceCache.get(queryId) || "";
 
-        // Filter by source if specified
         if (sourceFilter && querySource !== sourceFilter) continue;
 
         activeQueries.push({
