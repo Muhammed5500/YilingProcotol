@@ -13,7 +13,10 @@ import { createA2ARoutes } from "./a2a/handler.js";
 const app = new Hono();
 
 // Global middleware
-app.use("*", cors());
+app.use("*", cors({
+  origin: "*",
+  exposeHeaders: ["payment-required", "payment-response", "x-payment"],
+}));
 app.use("*", logger());
 
 // x402 payment middleware — Monad + Base + Solana (multi-facilitator)
