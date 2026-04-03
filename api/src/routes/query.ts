@@ -80,6 +80,7 @@ query.post("/create", async (c) => {
         reputationTag,
         creator: creator as Address,
         queryChain: chain,
+        source: source || "",
       });
 
       updateTx(tx.id, { state: "hub_confirmed", hubTxHash: result.hash });

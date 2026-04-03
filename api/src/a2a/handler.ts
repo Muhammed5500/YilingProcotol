@@ -139,6 +139,7 @@ async function handleTruthDiscovery(task: A2ATask) {
     reputationTag: "",
     creator: (creator || "0x0000000000000000000000000000000000000000") as Address,
     queryChain: "eip155:10143",
+    source: "a2a",
   });
 
   task.status = "completed";

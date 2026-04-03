@@ -48,6 +48,7 @@ contract SKCEngine {
         int128 minReputation;   // minimum reputation threshold (0 = no filter)
         string reputationTag;   // tag2 for reputation filtering
         string queryChain;      // chain where payments happen (set by builder's payment chain)
+        string source;          // application identifier (e.g. "yiling-market", permissionless)
     }
 
     // --- State ---
@@ -152,7 +153,8 @@ contract SKCEngine {
         int128 minReputation,
         string calldata reputationTag,
         address creator,
-        string calldata queryChain
+        string calldata queryChain,
+        string calldata source
     ) external onlyProtocolAPI returns (uint256 queryId) {
         if (alpha == 0 || alpha >= WAD) revert InvalidParameters();
         if (bondAmount == 0) revert InvalidParameters();
@@ -180,6 +182,7 @@ contract SKCEngine {
         q.minReputation = minReputation;
         q.reputationTag = reputationTag;
         q.queryChain = queryChain;
+        q.source = source;
 
         emit QueryCreated(queryId, question, alpha, initialPrice, creator);
     }
@@ -295,6 +298,10 @@ contract SKCEngine {
     {
         Query storage q = queries[queryId];
         return (q.alpha, q.k, q.flatReward, q.bondAmount, q.liquidityParam, q.createdAt);
+    }
+
+    function getQuerySource(uint256 queryId) external view returns (string memory) {
+        return queries[queryId].source;
     }
 
     function getReport(uint256 queryId, uint256 index)

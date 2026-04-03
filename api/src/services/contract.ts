@@ -5,7 +5,8 @@ import { config } from "../config.js";
 // Minimal ABIs for Hub contract interaction
 const skcEngineAbi = parseAbi([
   // Core functions (API-gated)
-  "function createQuery(string question, uint256 alpha, uint256 k, uint256 flatReward, uint256 bondAmount, uint256 liquidityParam, uint256 initialPrice, uint256 fundingAmount, int128 minReputation, string reputationTag, address creator, string queryChain) external returns (uint256)",
+  "function createQuery(string question, uint256 alpha, uint256 k, uint256 flatReward, uint256 bondAmount, uint256 liquidityParam, uint256 initialPrice, uint256 fundingAmount, int128 minReputation, string reputationTag, address creator, string queryChain, string source) external returns (uint256)",
+  "function getQuerySource(uint256 queryId) external view returns (string)",
   "function submitReport(uint256 queryId, uint256 probability, address reporter, uint256 bondAmount, string sourceChain) external",
   "function recordPayoutClaim(uint256 queryId, address reporter) external",
   "function forceResolve(uint256 queryId) external",
@@ -83,6 +84,7 @@ export async function createQuery(params: {
   reputationTag: string;
   creator: Address;
   queryChain: string;
+  source: string;
 }) {
   if (!walletClient) throw new Error("Wallet not configured");
 
@@ -103,6 +105,7 @@ export async function createQuery(params: {
       params.reputationTag,
       params.creator,
       params.queryChain,
+      params.source,
     ],
     gas: 1_000_000n,
   });
@@ -251,6 +254,19 @@ export async function getQueryCount() {
     abi: skcEngineAbi,
     functionName: "queryCount",
   });
+}
+
+export async function getQuerySourceOnChain(queryId: bigint): Promise<string> {
+  try {
+    return await publicClient.readContract({
+      address: config.skcEngineAddress as Address,
+      abi: skcEngineAbi,
+      functionName: "getQuerySource",
+      args: [queryId],
+    }) as string;
+  } catch {
+    return "";
+  }
 }
 
 export async function hasReported(queryId: bigint, reporter: Address) {

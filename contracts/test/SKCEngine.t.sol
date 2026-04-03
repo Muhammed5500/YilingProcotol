@@ -76,7 +76,8 @@ contract SKCEngineTest is Test {
             0,          // no reputation threshold
             "",         // no reputation tag
             builder,    // creator
-            "eip155:10143" // queryChain
+            "eip155:10143", // queryChain
+            ""              // source
         );
     }
 
@@ -94,7 +95,8 @@ contract SKCEngineTest is Test {
             0,
             "",
             builder,
-            "eip155:10143"
+            "eip155:10143",
+            ""
         );
     }
 
@@ -104,12 +106,12 @@ contract SKCEngineTest is Test {
         address stranger = makeAddr("stranger");
         vm.prank(stranger);
         vm.expectRevert(SKCEngine.NotAuthorized.selector);
-        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
+        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143", "");
     }
 
     function test_apiGated_protocolAPI_succeeds() public {
         vm.prank(protocolAPI);
-        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
+        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143", "");
         assertEq(queryId, 0);
     }
 
@@ -118,7 +120,7 @@ contract SKCEngineTest is Test {
 
         address anyone = makeAddr("anyone");
         vm.prank(anyone);
-        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", anyone, "eip155:10143");
+        uint256 queryId = engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", anyone, "eip155:10143", "");
         assertEq(queryId, 0);
     }
 
@@ -142,13 +144,13 @@ contract SKCEngineTest is Test {
     function test_createQuery_revert_invalidAlpha() public {
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.InvalidParameters.selector);
-        engine.createQuery("Q", 0, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143");
+        engine.createQuery("Q", 0, 1, 0.01e18, 0.1e18, 1e18, 0.5e18, 5e18, 0, "", builder, "eip155:10143", "");
     }
 
     function test_createQuery_revert_invalidProbability() public {
         vm.prank(protocolAPI);
         vm.expectRevert(SKCEngine.InvalidProbability.selector);
-        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, WAD, 5e18, 0, "", builder, "eip155:10143");
+        engine.createQuery("Q", 0.2e18, 1, 0.01e18, 0.1e18, 1e18, WAD, 5e18, 0, "", builder, "eip155:10143", "");
     }
 
     // ========== Submit Report Tests ==========
@@ -367,7 +369,8 @@ contract SKCEngineTest is Test {
             5000,           // minReputation = 50.00
             "governance",
             builder,
-            "eip155:10143"
+            "eip155:10143",
+            ""
         );
 
         vm.prank(protocolAPI);

@@ -33,8 +33,7 @@ app.route("/", a2aRoutes);
 app.get("/queries/active", async (c) => {
   try {
     const sourceFilter = c.req.query("source");
-    const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
-    const { getQuerySource } = await import("./routes/query.js");
+    const { getQueryCount, getQueryInfo, getQuerySourceOnChain } = await import("./services/contract.js");
     const totalQueries = await getQueryCount();
     const activeQueries = [];
 
@@ -42,7 +41,7 @@ app.get("/queries/active", async (c) => {
       const info = await getQueryInfo(i);
       if (!info.resolved) {
         const queryId = i.toString();
-        const querySource = getQuerySource(queryId);
+        const querySource = await getQuerySourceOnChain(i);
 
         // Filter by source if specified
         if (sourceFilter && querySource !== sourceFilter) continue;
@@ -54,7 +53,7 @@ app.get("/queries/active", async (c) => {
           creator: info.creator,
           totalPool: info.totalPool.toString(),
           reportCount: info.reportCount.toString(),
-          source: querySource || "",
+          source: querySource,
         });
       }
     }
