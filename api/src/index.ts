@@ -32,20 +32,29 @@ app.route("/", a2aRoutes);
 // Active queries list (free)
 app.get("/queries/active", async (c) => {
   try {
+    const sourceFilter = c.req.query("source");
     const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
+    const { getQuerySource } = await import("./routes/query.js");
     const totalQueries = await getQueryCount();
     const activeQueries = [];
 
     for (let i = 0n; i < totalQueries; i++) {
       const info = await getQueryInfo(i);
       if (!info.resolved) {
+        const queryId = i.toString();
+        const querySource = getQuerySource(queryId);
+
+        // Filter by source if specified
+        if (sourceFilter && querySource !== sourceFilter) continue;
+
         activeQueries.push({
-          queryId: i.toString(),
+          queryId,
           question: info.question,
           currentPrice: info.currentPrice.toString(),
           creator: info.creator,
           totalPool: info.totalPool.toString(),
           reportCount: info.reportCount.toString(),
+          source: querySource || "",
         });
       }
     }

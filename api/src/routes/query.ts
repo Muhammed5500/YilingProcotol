@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { config } from "../config.js";
 import * as contract from "../services/contract.js";
 import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js";
 import { executePayout } from "../services/payout.js";
@@ -14,9 +15,10 @@ type Env = {
 
 const query = new Hono<Env>();
 
-// Track query payment chains (in-memory — queryChain is written to hub contract
-// but not returned by getQueryInfo, so we cache it here for payout routing)
+// Track query metadata (in-memory — not stored on hub contract)
+// Maps queryId -> { paymentChain, source }
 const queryPaymentChains = new Map<string, string>();
+const querySources = new Map<string, string>();
 
 /**
  * POST /query/create
@@ -44,6 +46,7 @@ query.post("/create", async (c) => {
       reputationTag = "",
       creator,
       queryChain,       // chain where payments happen (auto-detected or specified)
+      source,           // application identifier (e.g. "yiling-market", "my-app")
     } = body;
 
     if (!question) return c.json({ error: "question is required" }, 400);
@@ -84,13 +87,30 @@ query.post("/create", async (c) => {
       // x402 settlement happens automatically via middleware
       updateTx(tx.id, { state: "settled" });
 
-      // Cache payment chain for this query (parse queryId from receipt logs if available)
-      // For now, we'll also expose it through the status endpoint via reports' sourceChain
+      // Parse queryId from QueryCreated event log
+      let queryId: string | undefined;
+      const queryCreatedTopic = "0x" + "QueryCreated".padEnd(64, "0"); // not exact, parse from logs
+      for (const log of result.receipt.logs) {
+        // QueryCreated event has queryId as first indexed topic
+        if (log.topics.length >= 2 && log.address.toLowerCase() === (config.skcEngineAddress || "").toLowerCase()) {
+          queryId = BigInt(log.topics[1]!).toString();
+          break;
+        }
+      }
+
+      // Cache source and payment chain for this query
+      if (queryId) {
+        if (source) querySources.set(queryId, source);
+        queryPaymentChains.set(queryId, chain);
+      }
+
       emitEvent("query.created", {
         txHash: result.hash,
         txId: tx.id,
+        queryId,
         question,
         creator,
+        source: source || "",
         paymentChain: chain,
         bondPool: charge.bondPool.toString(),
         creationFee: charge.creationFee.toString(),
@@ -99,7 +119,9 @@ query.post("/create", async (c) => {
       return c.json({
         txHash: result.hash,
         txId: tx.id,
+        queryId,
         status: "created",
+        source: source || "",
         paymentChain: chain,
         fees: {
           bondPool: charge.bondPool.toString(),
@@ -247,14 +269,16 @@ query.get("/:id/status", async (c) => {
       });
     }
 
+    const qId = c.req.param("id")!;
     return c.json({
-      queryId: c.req.param("id"),
+      queryId: qId,
       question: info.question,
       currentPrice: info.currentPrice.toString(),
       creator: info.creator,
       resolved: info.resolved,
       totalPool: info.totalPool.toString(),
       reportCount: info.reportCount.toString(),
+      source: querySources.get(qId) || "",
       params: {
         alpha: params.alpha.toString(),
         k: params.k.toString(),
@@ -449,5 +473,10 @@ query.post("/:id/resolve", async (c) => {
     return c.json({ error: err.message }, 500);
   }
 });
+
+/** Get the source tag for a query (used by /queries/active filter) */
+export function getQuerySource(queryId: string): string {
+  return querySources.get(queryId) || "";
+}
 
 export default query;
