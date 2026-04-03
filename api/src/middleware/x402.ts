@@ -35,8 +35,11 @@ export const allNetworks: `${string}:${string}`[] = [
 ];
 
 // ─── Paid Routes ────────────────────────────────────────────
+// x402 handles payment authorization — actual amounts depend on query parameters
+// These are base prices; the real cost is bondPool+15% (create) or bondAmount (report)
+// For now, use a reasonable default that covers most cases
 const paidRoutes: Record<string, { price: string; description: string }> = {
-  "/query/create": { price: "$10.00", description: "Create a truth discovery query" },
+  "/query/create": { price: "$1.00", description: "Create a truth discovery query" },
   "/query/:id/report": { price: "$1.00", description: "Submit a report with bond" },
 };
 
