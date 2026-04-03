@@ -29,7 +29,7 @@ app.route("/health", healthRoutes);
 app.route("/webhooks", webhookRoutes);
 
 // A2A routes (agent card discovery + task handling)
-const a2aRoutes = createA2ARoutes(`http://localhost:${config.port}`);
+const a2aRoutes = createA2ARoutes(process.env.API_BASE_URL || `https://api.yilingprotocol.com`);
 app.route("/", a2aRoutes);
 
 // Active queries list (free)
