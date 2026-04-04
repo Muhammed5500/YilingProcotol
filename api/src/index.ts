@@ -9,6 +9,7 @@ import agentRoutes from "./routes/agent.js";
 import healthRoutes from "./routes/health.js";
 import webhookRoutes from "./routes/webhooks.js";
 import { createA2ARoutes } from "./a2a/handler.js";
+import { cacheGet, cacheSet } from "./services/cache.js";
 
 const app = new Hono();
 
@@ -77,6 +78,12 @@ export function cacheQuerySource(queryId: string, source: string) {
 app.get("/queries/active", async (c) => {
   try {
     const sourceFilter = c.req.query("source");
+    const cacheKey = `queries:active:${sourceFilter || "all"}`;
+
+    // Return cached data if fresh (5s TTL)
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) return c.json(cached);
+
     const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
 
     // Warm cache on first call
@@ -105,7 +112,9 @@ app.get("/queries/active", async (c) => {
       }
     }
 
-    return c.json({ activeQueries });
+    const result = { activeQueries };
+    cacheSet(cacheKey, result, 5000);
+    return c.json(result);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }

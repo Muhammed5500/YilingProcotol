@@ -5,6 +5,7 @@ import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js
 import { executePayout } from "../services/payout.js";
 import { createTx, updateTx } from "../services/txTracker.js";
 import { emitEvent } from "../services/webhooks.js";
+import { cacheGet, cacheSet, cacheInvalidate } from "../services/cache.js";
 import type { Address } from "viem";
 
 type Env = {
@@ -209,6 +210,10 @@ query.post("/:id/report", async (c) => {
 
       const resolvedAfter = !(await contract.isQueryActive(queryId));
 
+      // Invalidate cache after new report
+      cacheInvalidate(`query:${queryId.toString()}`);
+      cacheInvalidate("queries:active");
+
       emitEvent("report.submitted", {
         queryId: queryId.toString(),
         txHash: result.hash,
@@ -250,7 +255,14 @@ query.post("/:id/report", async (c) => {
  */
 query.get("/:id/status", async (c) => {
   try {
-    const queryId = BigInt(c.req.param("id")!);
+    const qId = c.req.param("id")!;
+    const cacheKey = `query:${qId}:status`;
+
+    // Return cached data if fresh (5s TTL)
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) return c.json(cached);
+
+    const queryId = BigInt(qId);
 
     const [info, params, reportCount] = await Promise.all([
       contract.getQueryInfo(queryId),
@@ -273,8 +285,7 @@ query.get("/:id/status", async (c) => {
       });
     }
 
-    const qId = c.req.param("id")!;
-    return c.json({
+    const result = {
       queryId: qId,
       question: info.question,
       currentPrice: info.currentPrice.toString(),
@@ -292,7 +303,11 @@ query.get("/:id/status", async (c) => {
         createdAt: params.createdAt.toString(),
       },
       reports,
-    });
+    };
+
+    // Cache longer if resolved (30s) since data won't change
+    cacheSet(cacheKey, result, info.resolved ? 30000 : 5000);
+    return c.json(result);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
@@ -462,6 +477,10 @@ query.post("/:id/resolve", async (c) => {
   try {
     const queryId = BigInt(c.req.param("id")!);
     const result = await contract.forceResolve(queryId);
+
+    // Invalidate cache after resolve
+    cacheInvalidate(`query:${queryId.toString()}`);
+    cacheInvalidate("queries:active");
 
     emitEvent("query.resolved", {
       queryId: queryId.toString(),
