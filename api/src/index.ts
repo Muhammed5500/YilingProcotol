@@ -120,6 +120,50 @@ app.get("/queries/active", async (c) => {
   }
 });
 
+// Resolved queries list (free)
+app.get("/queries/resolved", async (c) => {
+  try {
+    const sourceFilter = c.req.query("source");
+    const cacheKey = `queries:resolved:${sourceFilter || "all"}`;
+
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) return c.json(cached);
+
+    const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
+
+    await warmSourceCache();
+
+    const totalQueries = await getQueryCount();
+    const resolvedQueries = [];
+
+    for (let i = 0n; i < totalQueries; i++) {
+      const info = await getQueryInfo(i);
+      if (info.resolved) {
+        const queryId = i.toString();
+        const querySource = sourceCache.get(queryId) || "";
+
+        if (sourceFilter && querySource !== sourceFilter) continue;
+
+        resolvedQueries.push({
+          queryId,
+          question: info.question,
+          currentPrice: info.currentPrice.toString(),
+          creator: info.creator,
+          totalPool: info.totalPool.toString(),
+          reportCount: info.reportCount.toString(),
+          source: querySource,
+        });
+      }
+    }
+
+    const result = { resolvedQueries };
+    cacheSet(cacheKey, result, 30000); // 30s cache — resolved data rarely changes
+    return c.json(result);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
 // SSE event stream for agents (free)
 app.get("/events/stream", async (c) => {
   const { addClient } = await import("./services/eventStream.js");
