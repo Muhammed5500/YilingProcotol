@@ -74,92 +74,91 @@ export function cacheQuerySource(queryId: string, source: string) {
   sourceCache.set(queryId, source);
 }
 
+// Stale cache — keeps last successful response per key for fallback on errors
+const staleCache = new Map<string, any>();
+
+// Helper: fetch all queries with parallel RPC + per-query error tolerance
+async function fetchAllQueries(filter: "active" | "resolved", sourceFilter?: string) {
+  const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
+
+  await warmSourceCache();
+
+  const totalQueries = await getQueryCount();
+  const indices = [];
+  for (let i = 0n; i < totalQueries; i++) indices.push(i);
+
+  // Parallel fetch — all queries at once instead of sequential
+  const results = await Promise.allSettled(
+    indices.map(async (i) => {
+      const info = await getQueryInfo(i);
+      return { i, info };
+    })
+  );
+
+  const queries = [];
+  for (const r of results) {
+    if (r.status === "rejected") continue; // Skip failed queries
+    const { i, info } = r.value;
+    const isMatch = filter === "active" ? !info.resolved : info.resolved;
+    if (!isMatch) continue;
+
+    const queryId = i.toString();
+    const querySource = sourceCache.get(queryId) || "";
+    if (sourceFilter && querySource !== sourceFilter) continue;
+
+    queries.push({
+      queryId,
+      question: info.question,
+      currentPrice: info.currentPrice.toString(),
+      creator: info.creator,
+      totalPool: info.totalPool.toString(),
+      reportCount: info.reportCount.toString(),
+      source: querySource,
+    });
+  }
+
+  return queries;
+}
+
 // Active queries list (free)
 app.get("/queries/active", async (c) => {
+  const sourceFilter = c.req.query("source");
+  const cacheKey = `queries:active:${sourceFilter || "all"}`;
+
+  const cached = cacheGet<any>(cacheKey);
+  if (cached) return c.json(cached);
+
   try {
-    const sourceFilter = c.req.query("source");
-    const cacheKey = `queries:active:${sourceFilter || "all"}`;
-
-    // Return cached data if fresh (5s TTL)
-    const cached = cacheGet<any>(cacheKey);
-    if (cached) return c.json(cached);
-
-    const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
-
-    // Warm cache on first call
-    await warmSourceCache();
-
-    const totalQueries = await getQueryCount();
-    const activeQueries = [];
-
-    for (let i = 0n; i < totalQueries; i++) {
-      const info = await getQueryInfo(i);
-      if (!info.resolved) {
-        const queryId = i.toString();
-        const querySource = sourceCache.get(queryId) || "";
-
-        if (sourceFilter && querySource !== sourceFilter) continue;
-
-        activeQueries.push({
-          queryId,
-          question: info.question,
-          currentPrice: info.currentPrice.toString(),
-          creator: info.creator,
-          totalPool: info.totalPool.toString(),
-          reportCount: info.reportCount.toString(),
-          source: querySource,
-        });
-      }
-    }
-
+    const activeQueries = await fetchAllQueries("active", sourceFilter);
     const result = { activeQueries };
-    cacheSet(cacheKey, result, 5000);
+    cacheSet(cacheKey, result, 15000); // 15s cache
+    staleCache.set(cacheKey, result);
     return c.json(result);
   } catch (err: any) {
+    // Return stale data if available, otherwise error
+    const stale = staleCache.get(cacheKey);
+    if (stale) return c.json(stale);
     return c.json({ error: err.message }, 500);
   }
 });
 
 // Resolved queries list (free)
 app.get("/queries/resolved", async (c) => {
+  const sourceFilter = c.req.query("source");
+  const cacheKey = `queries:resolved:${sourceFilter || "all"}`;
+
+  const cached = cacheGet<any>(cacheKey);
+  if (cached) return c.json(cached);
+
   try {
-    const sourceFilter = c.req.query("source");
-    const cacheKey = `queries:resolved:${sourceFilter || "all"}`;
-
-    const cached = cacheGet<any>(cacheKey);
-    if (cached) return c.json(cached);
-
-    const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
-
-    await warmSourceCache();
-
-    const totalQueries = await getQueryCount();
-    const resolvedQueries = [];
-
-    for (let i = 0n; i < totalQueries; i++) {
-      const info = await getQueryInfo(i);
-      if (info.resolved) {
-        const queryId = i.toString();
-        const querySource = sourceCache.get(queryId) || "";
-
-        if (sourceFilter && querySource !== sourceFilter) continue;
-
-        resolvedQueries.push({
-          queryId,
-          question: info.question,
-          currentPrice: info.currentPrice.toString(),
-          creator: info.creator,
-          totalPool: info.totalPool.toString(),
-          reportCount: info.reportCount.toString(),
-          source: querySource,
-        });
-      }
-    }
-
+    const resolvedQueries = await fetchAllQueries("resolved", sourceFilter);
     const result = { resolvedQueries };
-    cacheSet(cacheKey, result, 30000); // 30s cache — resolved data rarely changes
+    cacheSet(cacheKey, result, 60000); // 60s cache — resolved data rarely changes
+    staleCache.set(cacheKey, result);
     return c.json(result);
   } catch (err: any) {
+    const stale = staleCache.get(cacheKey);
+    if (stale) return c.json(stale);
     return c.json({ error: err.message }, 500);
   }
 });
