@@ -69,6 +69,17 @@ const walletClient = account
     })
   : undefined;
 
+// ========== TX SERIALIZATION ==========
+// Global write mutex — ensures only one chain write is in-flight at a time.
+// This prevents nonce collisions when multiple queries/reports try to write concurrently.
+let txQueue = Promise.resolve<any>(undefined);
+
+function serializedWrite<T>(fn: () => Promise<T>): Promise<T> {
+  const p = txQueue.then(() => fn(), () => fn());
+  txQueue = p.then(() => {}, () => {});
+  return p;
+}
+
 // ========== WRITE FUNCTIONS ==========
 
 export async function createQuery(params: {
@@ -88,33 +99,35 @@ export async function createQuery(params: {
 }) {
   if (!walletClient) throw new Error("Wallet not configured");
 
-  const hash = await walletClient.writeContract({
-    address: config.skcEngineAddress as Address,
-    abi: skcEngineAbi,
-    functionName: "createQuery",
-    args: [
-      params.question,
-      params.alpha,
-      params.k,
-      params.flatReward,
-      params.bondAmount,
-      params.liquidityParam,
-      params.initialPrice,
-      params.fundingAmount,
-      params.minReputation,
-      params.reputationTag,
-      params.creator,
-      params.queryChain,
-      params.source,
-    ],
-    gas: 1_000_000n,
-  });
+  return serializedWrite(async () => {
+    const hash = await walletClient.writeContract({
+      address: config.skcEngineAddress as Address,
+      abi: skcEngineAbi,
+      functionName: "createQuery",
+      args: [
+        params.question,
+        params.alpha,
+        params.k,
+        params.flatReward,
+        params.bondAmount,
+        params.liquidityParam,
+        params.initialPrice,
+        params.fundingAmount,
+        params.minReputation,
+        params.reputationTag,
+        params.creator,
+        params.queryChain,
+        params.source,
+      ],
+      gas: 1_000_000n,
+    });
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status === "reverted") {
-    throw new Error("Transaction reverted on-chain");
-  }
-  return { hash, receipt };
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status === "reverted") {
+      throw new Error("Transaction reverted on-chain");
+    }
+    return { hash, receipt };
+  });
 }
 
 export async function submitReport(params: {
@@ -126,61 +139,67 @@ export async function submitReport(params: {
 }) {
   if (!walletClient) throw new Error("Wallet not configured");
 
-  const hash = await walletClient.writeContract({
-    address: config.skcEngineAddress as Address,
-    abi: skcEngineAbi,
-    functionName: "submitReport",
-    args: [
-      params.queryId,
-      params.probability,
-      params.reporter,
-      params.bondAmount,
-      params.sourceChain,
-    ],
-    gas: 1_000_000n, // manual gas limit — Monad gas estimation can be unreliable
-  });
+  return serializedWrite(async () => {
+    const hash = await walletClient.writeContract({
+      address: config.skcEngineAddress as Address,
+      abi: skcEngineAbi,
+      functionName: "submitReport",
+      args: [
+        params.queryId,
+        params.probability,
+        params.reporter,
+        params.bondAmount,
+        params.sourceChain,
+      ],
+      gas: 1_000_000n,
+    });
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status === "reverted") {
-    throw new Error("Transaction reverted on-chain");
-  }
-  return { hash, receipt };
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status === "reverted") {
+      throw new Error("Transaction reverted on-chain");
+    }
+    return { hash, receipt };
+  });
 }
 
 export async function recordPayoutClaim(queryId: bigint, reporter: Address) {
   if (!walletClient) throw new Error("Wallet not configured");
 
-  const hash = await walletClient.writeContract({
-    address: config.skcEngineAddress as Address,
-    abi: skcEngineAbi,
-    functionName: "recordPayoutClaim",
-    args: [queryId, reporter],
-    gas: 500_000n,
-  });
+  return serializedWrite(async () => {
+    const hash = await walletClient.writeContract({
+      address: config.skcEngineAddress as Address,
+      abi: skcEngineAbi,
+      functionName: "recordPayoutClaim",
+      args: [queryId, reporter],
+      gas: 500_000n,
+    });
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status === "reverted") {
-    throw new Error("Transaction reverted on-chain");
-  }
-  return { hash, receipt };
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status === "reverted") {
+      throw new Error("Transaction reverted on-chain");
+    }
+    return { hash, receipt };
+  });
 }
 
 export async function forceResolve(queryId: bigint) {
   if (!walletClient) throw new Error("Wallet not configured");
 
-  const hash = await walletClient.writeContract({
-    address: config.skcEngineAddress as Address,
-    abi: skcEngineAbi,
-    functionName: "forceResolve",
-    args: [queryId],
-    gas: 1_000_000n,
-  });
+  return serializedWrite(async () => {
+    const hash = await walletClient.writeContract({
+      address: config.skcEngineAddress as Address,
+      abi: skcEngineAbi,
+      functionName: "forceResolve",
+      args: [queryId],
+      gas: 1_000_000n,
+    });
 
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
-  if (receipt.status === "reverted") {
-    throw new Error("Transaction reverted on-chain");
-  }
-  return { hash, receipt };
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (receipt.status === "reverted") {
+      throw new Error("Transaction reverted on-chain");
+    }
+    return { hash, receipt };
+  });
 }
 
 // ========== READ FUNCTIONS ==========

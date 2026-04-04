@@ -14,9 +14,12 @@ type SSEClient = {
   id: string;
   controller: ReadableStreamDefaultController;
   connectedAt: string;
+  agentAddress?: string;
 };
 
 const clients = new Map<string, SSEClient>();
+// Agent address → SSE client IDs (one agent may have multiple connections)
+const agentClients = new Map<string, Set<string>>();
 
 // Heartbeat keeps connections alive (every 30s)
 setInterval(() => {
@@ -31,26 +34,42 @@ setInterval(() => {
 
 /**
  * Register a new SSE client. Returns a ReadableStream for the response.
+ * If agentAddress is provided, the client is mapped for unicast messaging.
  */
-export function addClient(): { id: string; stream: ReadableStream } {
+export function addClient(agentAddress?: string): { id: string; stream: ReadableStream } {
   const id = crypto.randomUUID();
-
-  let savedController: ReadableStreamDefaultController;
+  const normalizedAddress = agentAddress?.toLowerCase();
 
   const stream = new ReadableStream({
     start(controller) {
-      savedController = controller;
-
       clients.set(id, {
         id,
         controller,
         connectedAt: new Date().toISOString(),
+        agentAddress: normalizedAddress,
       });
+
+      // Track agent → client mapping
+      if (normalizedAddress) {
+        if (!agentClients.has(normalizedAddress)) {
+          agentClients.set(normalizedAddress, new Set());
+        }
+        agentClients.get(normalizedAddress)!.add(id);
+      }
 
       // Send welcome message
       controller.enqueue(`data: ${JSON.stringify({ type: "connected", id })}\n\n`);
     },
     cancel() {
+      // Clean up agent mapping
+      const client = clients.get(id);
+      if (client?.agentAddress) {
+        const clientIds = agentClients.get(client.agentAddress);
+        if (clientIds) {
+          clientIds.delete(id);
+          if (clientIds.size === 0) agentClients.delete(client.agentAddress);
+        }
+      }
       clients.delete(id);
     },
   });
@@ -73,6 +92,38 @@ export function broadcast(type: string, data: Record<string, any>) {
       clients.delete(id);
     }
   }
+}
+
+/**
+ * Send an event to a specific agent by wallet address (unicast).
+ * Returns true if at least one delivery succeeded.
+ */
+export function sendToAgent(agentAddress: string, type: string, data: Record<string, any>): boolean {
+  const normalizedAddress = agentAddress.toLowerCase();
+  const clientIds = agentClients.get(normalizedAddress);
+  if (!clientIds || clientIds.size === 0) return false;
+
+  const payload = JSON.stringify({ type, data, timestamp: new Date().toISOString() });
+  const message = `event: ${type}\ndata: ${payload}\n\n`;
+
+  let delivered = false;
+  for (const clientId of clientIds) {
+    const client = clients.get(clientId);
+    if (!client) {
+      clientIds.delete(clientId);
+      continue;
+    }
+    try {
+      client.controller.enqueue(message);
+      delivered = true;
+    } catch {
+      clientIds.delete(clientId);
+      clients.delete(clientId);
+    }
+  }
+
+  if (clientIds.size === 0) agentClients.delete(normalizedAddress);
+  return delivered;
 }
 
 /**

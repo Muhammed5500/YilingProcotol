@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { config } from "../config.js";
 import * as contract from "../services/contract.js";
+import * as orchestrator from "../services/orchestrator.js";
 import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js";
 import { executePayout } from "../services/payout.js";
 import { createTx, updateTx } from "../services/txTracker.js";
@@ -107,6 +108,9 @@ query.post("/create", async (c) => {
         // Also update the global source cache in index.ts
         const { cacheQuerySource } = await import("../index.js");
         cacheQuerySource(queryId, source || "");
+
+        // Initialize orchestration for this query
+        orchestrator.initOrchestration(queryId);
       }
 
       emitEvent("query.created", {
@@ -163,6 +167,23 @@ query.post("/:id/report", async (c) => {
     if (!probability) return c.json({ error: "probability is required" }, 400);
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
 
+    // Orchestrator guard: if orchestration exists, only selected agent can report
+    const orch = orchestrator.getOrchestration(queryId.toString());
+    if (orch) {
+      if (orch.state !== "awaiting_report") {
+        return c.json({
+          error: "Not accepting reports in current state",
+          orchestrationState: orch.state,
+        }, 409);
+      }
+      if (!orchestrator.isSelectedAgent(queryId.toString(), reporter)) {
+        return c.json({
+          error: "Not your turn. Wait for agent.selected event.",
+          orchestrationState: orch.state,
+        }, 403);
+      }
+    }
+
     // Use verified payment chain from x402 middleware, not self-reported body
     const paymentChain = c.get("paymentChain") as string | undefined;
     const sourceChain = paymentChain || bodySourceChain || "unknown";
@@ -209,6 +230,22 @@ query.post("/:id/report", async (c) => {
       updateTx(tx.id, { state: "settled" });
 
       const resolvedAfter = !(await contract.isQueryActive(queryId));
+
+      // Notify orchestrator that report was submitted
+      if (orch) {
+        // Get report details from chain for the summary
+        const reportCount = await contract.getReportCount(queryId);
+        const latestReport = await contract.getReport(queryId, reportCount - 1n);
+
+        orchestrator.handleReport(queryId.toString(), reporter, {
+          roundNumber: orch.currentRound?.roundNumber ?? 0,
+          reporter,
+          probability: probability.toString(),
+          priceBefore: latestReport.priceBefore.toString(),
+          priceAfter: latestReport.priceAfter.toString(),
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       // Invalidate cache after new report
       cacheInvalidate(`query:${queryId.toString()}`);
@@ -432,6 +469,85 @@ query.get("/:id/payout/:reporter", async (c) => {
       net: netPayout.toString(),
       rakeRate: "5%",
     });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+/**
+ * POST /query/:id/join
+ * Join the agent pool for a query (free, no bond, no x402)
+ *
+ * Requires ERC-8004 identity registration.
+ * Agent will be eligible for random selection in prediction rounds.
+ * Bond is only charged when the agent actually submits a prediction.
+ */
+query.post("/:id/join", async (c) => {
+  try {
+    const queryId = c.req.param("id")!;
+    const body = await c.req.json();
+    const { wallet } = body;
+
+    if (!wallet) return c.json({ error: "wallet address is required" }, 400);
+
+    // Verify query exists and is active
+    const active = await contract.isQueryActive(BigInt(queryId));
+    if (!active) {
+      return c.json({ error: "Query is not active" }, 409);
+    }
+
+    // Verify ERC-8004 registration
+    const isRegistered = await contract.isRegisteredAgent(wallet as Address);
+    if (!isRegistered) {
+      return c.json({
+        error: "Agent not registered. Mint ERC-8004 identity and call joinEcosystem first.",
+        registrationEndpoint: "POST /agent/register",
+      }, 403);
+    }
+
+    // Check if already reported on-chain
+    const alreadyReported = await contract.hasReported(BigInt(queryId), wallet as Address);
+    if (alreadyReported) {
+      return c.json({ error: "Agent has already reported on this query" }, 409);
+    }
+
+    const agentId = await contract.getAgentId(wallet as Address);
+
+    const result = orchestrator.joinPool(queryId, {
+      address: wallet,
+      agentId: agentId.toString(),
+    });
+
+    if (!result.ok) {
+      return c.json({ error: result.error }, 409);
+    }
+
+    return c.json({
+      queryId,
+      position: result.position,
+      poolSize: result.poolSize,
+      orchestrationStatus: result.status,
+      message: "Joined pool. Listen to SSE events for agent.selected notification.",
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+/**
+ * GET /query/:id/pool
+ * Get current orchestration pool status (free)
+ */
+query.get("/:id/pool", async (c) => {
+  try {
+    const queryId = c.req.param("id")!;
+    const poolInfo = orchestrator.getPoolInfo(queryId);
+
+    if (!poolInfo) {
+      return c.json({ error: "No orchestration found for this query" }, 404);
+    }
+
+    return c.json(poolInfo);
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }

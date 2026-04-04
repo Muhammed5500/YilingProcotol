@@ -165,11 +165,13 @@ app.get("/queries/resolved", async (c) => {
 });
 
 // SSE event stream for agents (free)
+// Agents can identify themselves with ?agent=0xABC... for targeted orchestration messages
 app.get("/events/stream", async (c) => {
   const { addClient } = await import("./services/eventStream.js");
-  const { id, stream } = addClient();
+  const agentAddress = c.req.query("agent");
+  const { id, stream } = addClient(agentAddress);
 
-  console.log(`[SSE] Agent connected: ${id}`);
+  console.log(`[SSE] Agent connected: ${id}${agentAddress ? ` (${agentAddress})` : ""}`);
 
   return new Response(stream, {
     headers: {
@@ -224,7 +226,9 @@ app.get("/", (c) => {
     },
     endpoints: {
       "POST /query/create": "Create a new truth discovery query (x402: bondPool + 15% fee)",
-      "POST /query/:id/report": "Submit a report (x402: bond amount, 0% agent fee)",
+      "POST /query/:id/join": "Join agent pool for a query (free, no bond)",
+      "GET /query/:id/pool": "Get orchestration pool status (free)",
+      "POST /query/:id/report": "Submit a report — must be selected agent (x402: bond amount)",
       "GET /query/:id/status": "Get query status and details (free)",
       "POST /query/:id/claim": "Claim payout after resolution (5% rake deducted)",
       "GET /query/:id/payout/:reporter": "Preview payout amounts (free)",
@@ -234,7 +238,7 @@ app.get("/", (c) => {
       "POST /agent/register": "Get registration instructions for new agents (free)",
       "GET /agent/:address/status": "Check agent registration status (free)",
       "GET /agent/:id/reputation": "Get agent reputation score (free)",
-      "GET /events/stream": "Real-time SSE event stream for agents (free)",
+      "GET /events/stream": "Real-time SSE event stream (?agent=0x... for orchestration unicasts)",
       "GET /health": "Health check (free)",
     },
   });

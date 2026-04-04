@@ -22,6 +22,14 @@ export const config = {
   // Server
   port: parseInt(process.env.PORT || "3001"),
 
+  // Orchestrator
+  orchestrator: {
+    poolingWindowMs: parseInt(process.env.ORCHESTRATOR_POOLING_WINDOW_MS || "30000"),
+    roundTimeoutMs: parseInt(process.env.ORCHESTRATOR_ROUND_TIMEOUT_MS || "10000"),
+    minPoolSize: parseInt(process.env.ORCHESTRATOR_MIN_POOL_SIZE || "1"),
+    maxPoolSize: parseInt(process.env.ORCHESTRATOR_MAX_POOL_SIZE || "50"),
+  },
+
   // x402 inbound payment chains
   // Toggle between testnet and mainnet via NETWORK_ENV
   acceptedPayments: process.env.NETWORK_ENV === "mainnet"
