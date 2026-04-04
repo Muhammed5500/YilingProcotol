@@ -19,11 +19,13 @@
     "@x402/fetch": "^2.8.0",
     "@x402/hono": "^2.8.0",
     "@x402/svm": "^2.8.0",
+    "better-sqlite3": "^12.8.0",
     "dotenv": "^16.4.0",
     "hono": "^4.7.0",
     "viem": "^2.23.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"

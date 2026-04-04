@@ -9,7 +9,7 @@ import agentRoutes from "./routes/agent.js";
 import healthRoutes from "./routes/health.js";
 import webhookRoutes from "./routes/webhooks.js";
 import { createA2ARoutes } from "./a2a/handler.js";
-import { cacheGet, cacheSet } from "./services/cache.js";
+import * as db from "./services/db.js";
 
 const app = new Hono();
 
@@ -33,134 +33,41 @@ app.route("/webhooks", webhookRoutes);
 const a2aRoutes = createA2ARoutes(process.env.API_BASE_URL || `https://api.yilingprotocol.com`);
 app.route("/", a2aRoutes);
 
-// ─── Source Cache ──────────────────────────────────────────
-// Cache source per queryId to avoid on-chain calls on every list request
-const sourceCache = new Map<string, string>();
-let sourceCacheWarmed = false;
-
-async function getSourceCached(queryId: bigint): Promise<string> {
-  const key = queryId.toString();
-  if (sourceCache.has(key)) return sourceCache.get(key)!;
-
-  // Cache miss — read from chain and cache
-  const { getQuerySourceOnChain } = await import("./services/contract.js");
-  const source = await getQuerySourceOnChain(queryId);
-  sourceCache.set(key, source);
-  return source;
-}
-
-// Warm cache on first request — read all sources once
-async function warmSourceCache() {
-  if (sourceCacheWarmed) return;
-  try {
-    const { getQueryCount, getQuerySourceOnChain } = await import("./services/contract.js");
-    const total = await getQueryCount();
-    const promises = [];
-    for (let i = 0n; i < total; i++) {
-      const key = i.toString();
-      if (!sourceCache.has(key)) {
-        promises.push(
-          getQuerySourceOnChain(i).then((s) => sourceCache.set(key, s))
-        );
-      }
-    }
-    await Promise.all(promises);
-    sourceCacheWarmed = true;
-  } catch {}
-}
-
-// Export for query.ts to update cache on create
+// Export for query.ts to update DB on create
 export function cacheQuerySource(queryId: string, source: string) {
-  sourceCache.set(queryId, source);
+  // Now handled by db.upsertQuery — kept for backward compat
 }
 
-// Stale cache — keeps last successful response per key for fallback on errors
-const staleCache = new Map<string, any>();
-
-// Helper: fetch all queries with parallel RPC + per-query error tolerance
-async function fetchAllQueries(filter: "active" | "resolved", sourceFilter?: string) {
-  const { getQueryCount, getQueryInfo } = await import("./services/contract.js");
-
-  await warmSourceCache();
-
-  const totalQueries = await getQueryCount();
-  const indices = [];
-  for (let i = 0n; i < totalQueries; i++) indices.push(i);
-
-  // Parallel fetch — all queries at once instead of sequential
-  const results = await Promise.allSettled(
-    indices.map(async (i) => {
-      const info = await getQueryInfo(i);
-      return { i, info };
-    })
-  );
-
-  const queries = [];
-  for (const r of results) {
-    if (r.status === "rejected") continue; // Skip failed queries
-    const { i, info } = r.value;
-    const isMatch = filter === "active" ? !info.resolved : info.resolved;
-    if (!isMatch) continue;
-
-    const queryId = i.toString();
-    const querySource = sourceCache.get(queryId) || "";
-    if (sourceFilter && querySource !== sourceFilter) continue;
-
-    queries.push({
-      queryId,
-      question: info.question,
-      currentPrice: info.currentPrice.toString(),
-      creator: info.creator,
-      totalPool: info.totalPool.toString(),
-      reportCount: info.reportCount.toString(),
-      source: querySource,
-    });
-  }
-
-  return queries;
-}
-
-// Active queries list (free)
-app.get("/queries/active", async (c) => {
+// Active queries list (free) — reads from SQLite, 0 RPC calls
+app.get("/queries/active", (c) => {
   const sourceFilter = c.req.query("source");
-  const cacheKey = `queries:active:${sourceFilter || "all"}`;
-
-  const cached = cacheGet<any>(cacheKey);
-  if (cached) return c.json(cached);
-
-  try {
-    const activeQueries = await fetchAllQueries("active", sourceFilter);
-    const result = { activeQueries };
-    cacheSet(cacheKey, result, 15000); // 15s cache
-    staleCache.set(cacheKey, result);
-    return c.json(result);
-  } catch (err: any) {
-    // Return stale data if available, otherwise error
-    const stale = staleCache.get(cacheKey);
-    if (stale) return c.json(stale);
-    return c.json({ error: err.message }, 500);
-  }
+  const rows = db.getActiveQueries(sourceFilter || undefined);
+  const activeQueries = rows.map((r) => ({
+    queryId: r.query_id.toString(),
+    question: r.question,
+    currentPrice: r.current_price,
+    creator: r.creator,
+    totalPool: r.total_pool,
+    reportCount: r.report_count.toString(),
+    source: r.source,
+  }));
+  return c.json({ activeQueries });
 });
 
-// Resolved queries list (free)
-app.get("/queries/resolved", async (c) => {
+// Resolved queries list (free) — reads from SQLite, 0 RPC calls
+app.get("/queries/resolved", (c) => {
   const sourceFilter = c.req.query("source");
-  const cacheKey = `queries:resolved:${sourceFilter || "all"}`;
-
-  const cached = cacheGet<any>(cacheKey);
-  if (cached) return c.json(cached);
-
-  try {
-    const resolvedQueries = await fetchAllQueries("resolved", sourceFilter);
-    const result = { resolvedQueries };
-    cacheSet(cacheKey, result, 60000); // 60s cache — resolved data rarely changes
-    staleCache.set(cacheKey, result);
-    return c.json(result);
-  } catch (err: any) {
-    const stale = staleCache.get(cacheKey);
-    if (stale) return c.json(stale);
-    return c.json({ error: err.message }, 500);
-  }
+  const rows = db.getResolvedQueries(sourceFilter || undefined);
+  const resolvedQueries = rows.map((r) => ({
+    queryId: r.query_id.toString(),
+    question: r.question,
+    currentPrice: r.current_price,
+    creator: r.creator,
+    totalPool: r.total_pool,
+    reportCount: r.report_count.toString(),
+    source: r.source,
+  }));
+  return c.json({ resolvedQueries });
 });
 
 // SSE event stream for agents (free)
@@ -245,8 +152,23 @@ app.get("/", (c) => {
 
 // Start server
 console.log(`Yiling Protocol API starting on port ${config.port}...`);
+
+// Initialize DB before starting server
+db.initDb();
+
 serve({ fetch: app.fetch, port: config.port }, async (info) => {
   console.log(`Yiling Protocol API running at http://localhost:${info.port}`);
+
+  // Sync queries from chain to DB (only fetches missing ones)
+  try {
+    await db.syncQueriesFromChain();
+  } catch (err: any) {
+    console.warn(`[startup] Chain sync failed (will retry on next request): ${err.message}`);
+  }
+
+  // Recover orchestration state from DB
+  const { recoverFromDb } = await import("./services/orchestrator.js");
+  recoverFromDb();
 
   // Start background retry job for failed settlements (every 60s)
   const { startRetryJob } = await import("./services/txTracker.js");

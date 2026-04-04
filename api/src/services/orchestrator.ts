@@ -12,6 +12,7 @@
 
 import { config } from "../config.js";
 import * as contract from "./contract.js";
+import * as db from "./db.js";
 import { broadcast, sendToAgent } from "./eventStream.js";
 import type { Address } from "viem";
 
@@ -78,6 +79,83 @@ type JoinResult =
 
 const orchestrations = new Map<string, QueryOrchestration>();
 
+// ========== DB PERSISTENCE ==========
+
+function persistOrch(orch: QueryOrchestration) {
+  try {
+    db.saveOrchestration(orch.queryId, {
+      state: orch.state,
+      pool: orch.pool,
+      usedAgents: Array.from(orch.usedAgents),
+      reports: orch.reports,
+      roundHistory: orch.roundHistory.map((r) => ({
+        roundNumber: r.roundNumber,
+        selectedAgent: r.selectedAgent,
+        selectedAt: r.selectedAt,
+        status: r.status,
+      })),
+      currentRound: orch.currentRound,
+      createdAt: orch.createdAt,
+      poolingDeadline: orch.createdAt + config.orchestrator.poolingWindowMs,
+    });
+  } catch (err: any) {
+    console.error(`[orchestrator] DB persist failed for query ${orch.queryId}: ${err.message}`);
+  }
+}
+
+/**
+ * Recover orchestration state from DB after restart.
+ * Restores pools, re-creates timers.
+ */
+export function recoverFromDb() {
+  const rows = db.loadAllActiveOrchestrations();
+  if (rows.length === 0) {
+    console.log("[orchestrator] No active orchestrations to recover");
+    return;
+  }
+
+  console.log(`[orchestrator] Recovering ${rows.length} orchestrations from DB...`);
+
+  for (const row of rows) {
+    const pool: PooledAgent[] = JSON.parse(row.pool);
+    const usedAgents: string[] = JSON.parse(row.used_agents);
+    const reports: ReportSummary[] = JSON.parse(row.reports);
+    const roundHistory = JSON.parse(row.round_history);
+
+    const orch: QueryOrchestration = {
+      queryId: row.query_id,
+      state: row.state as OrchestratorState,
+      pool,
+      usedAgents: new Set(usedAgents),
+      currentRound: null,
+      roundHistory,
+      reports,
+      poolingTimer: null,
+      createdAt: row.created_at,
+    };
+
+    orchestrations.set(row.query_id, orch);
+
+    // Re-create timers based on state
+    if (orch.state === "pooling") {
+      const remaining = row.pooling_deadline - Date.now();
+      if (remaining > 0) {
+        orch.poolingTimer = setTimeout(() => {
+          orch.poolingTimer = null;
+          if (orch.pool.length >= config.orchestrator.minPoolSize) {
+            startRounds(orch.queryId);
+          }
+        }, remaining);
+      } else if (orch.pool.length >= config.orchestrator.minPoolSize) {
+        // Timer already expired, start rounds immediately
+        startRounds(orch.queryId);
+      }
+    }
+
+    console.log(`[orchestrator] Recovered query ${row.query_id}: state=${row.state}, pool=${pool.length}`);
+  }
+}
+
 // ========== PUBLIC API ==========
 
 /**
@@ -113,6 +191,7 @@ export function initOrchestration(queryId: string): QueryOrchestration {
   }, config.orchestrator.poolingWindowMs);
 
   orchestrations.set(queryId, orch);
+  persistOrch(orch);
   console.log(`[orchestrator] query ${queryId}: orchestration initialized, pooling for ${config.orchestrator.poolingWindowMs}ms`);
   return orch;
 }
@@ -156,6 +235,7 @@ export function joinPool(queryId: string, agent: { address: string; agentId: str
   };
 
   orch.pool.push(pooledAgent);
+  persistOrch(orch);
 
   // Broadcast pool update
   broadcast("pool.update", {
@@ -219,6 +299,7 @@ export function handleReport(queryId: string, reporter: string, reportSummary: R
   // Archive round and advance
   orch.roundHistory.push(orch.currentRound);
   orch.currentRound = null;
+  persistOrch(orch);
 
   advanceOrStop(queryId);
   return true;
@@ -299,6 +380,7 @@ async function startNextRound(orch: QueryOrchestration) {
   if (!agent) {
     // Pool exhausted
     orch.state = "resolved";
+    persistOrch(orch);
     console.log(`[orchestrator] query ${orch.queryId}: pool exhausted`);
     broadcast("orchestration.ended", { queryId: orch.queryId, reason: "pool_exhausted" });
     return;
@@ -316,6 +398,7 @@ async function startNextRound(orch: QueryOrchestration) {
   orch.currentRound = round;
   orch.state = "awaiting_report";
   orch.usedAgents.add(agent.address.toLowerCase());
+  persistOrch(orch);
 
   // Build state package for the selected agent
   const statePackage = await buildStatePackage(orch);
@@ -374,6 +457,7 @@ function onTimeout(queryId: string) {
   // Archive and advance
   orch.roundHistory.push(orch.currentRound);
   orch.currentRound = null;
+  persistOrch(orch);
 
   advanceOrStop(queryId);
 }
@@ -390,6 +474,7 @@ async function advanceOrStop(queryId: string) {
     const active = await contract.isQueryActive(BigInt(queryId));
     if (!active) {
       orch.state = "resolved";
+      persistOrch(orch);
       console.log(`[orchestrator] query ${queryId}: resolved on-chain`);
       broadcast("orchestration.ended", { queryId, reason: "resolved" });
       return;
@@ -402,6 +487,7 @@ async function advanceOrStop(queryId: string) {
   const available = orch.pool.filter(a => !orch.usedAgents.has(a.address.toLowerCase()));
   if (available.length === 0) {
     orch.state = "resolved";
+    persistOrch(orch);
     console.log(`[orchestrator] query ${queryId}: pool exhausted`);
     broadcast("orchestration.ended", { queryId, reason: "pool_exhausted" });
     return;

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { config } from "../config.js";
 import * as contract from "../services/contract.js";
 import * as orchestrator from "../services/orchestrator.js";
+import * as db from "../services/db.js";
 import { calculateCreationCharge, calculateNetPayout } from "../services/fees.js";
 import { executePayout } from "../services/payout.js";
 import { createTx, updateTx } from "../services/txTracker.js";
@@ -111,6 +112,20 @@ query.post("/create", async (c) => {
 
         // Initialize orchestration for this query
         orchestrator.initOrchestration(queryId);
+
+        // Persist query to DB
+        db.upsertQuery(Number(queryId), {
+          question,
+          current_price: (initialPrice || "500000000000000000").toString(),
+          creator,
+          source: source || "",
+          total_pool: charge.bondPool.toString(),
+          alpha: alpha?.toString(),
+          k: k?.toString(),
+          flat_reward: flatReward?.toString(),
+          bond_amount: bondAmount?.toString(),
+          liquidity_param: liquidityParam?.toString(),
+        });
       }
 
       emitEvent("query.created", {
@@ -245,6 +260,14 @@ query.post("/:id/report", async (c) => {
           priceAfter: latestReport.priceAfter.toString(),
           timestamp: new Date().toISOString(),
         });
+      }
+
+      // Update DB with new report count and price
+      const newReportCount = Number(await contract.getReportCount(queryId));
+      const updatedInfo = await contract.getQueryInfo(queryId);
+      db.updateQueryOnReport(Number(queryId), newReportCount, updatedInfo.currentPrice.toString());
+      if (resolvedAfter) {
+        db.markResolved(Number(queryId));
       }
 
       // Invalidate cache after new report
@@ -593,6 +616,9 @@ query.post("/:id/resolve", async (c) => {
   try {
     const queryId = BigInt(c.req.param("id")!);
     const result = await contract.forceResolve(queryId);
+
+    // Update DB
+    db.markResolved(Number(queryId));
 
     // Invalidate cache after resolve
     cacheInvalidate(`query:${queryId.toString()}`);
