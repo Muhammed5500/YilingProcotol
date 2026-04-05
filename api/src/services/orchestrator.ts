@@ -121,6 +121,7 @@ export function recoverFromDb() {
 
   console.log(`[orchestrator] Recovering ${rows.length} orchestrations from DB...`);
 
+  let recoveryIndex = 0;
   for (const row of rows) {
     const pool: PooledAgent[] = JSON.parse(row.pool);
     const usedAgents: string[] = JSON.parse(row.used_agents);
@@ -143,6 +144,7 @@ export function recoverFromDb() {
     orchestrations.set(row.query_id, orch);
 
     // Re-create timers based on state
+    // Stagger recovery to avoid hitting Monad RPC rate limit (15 req/s)
     if (orch.state === "pooling") {
       const remaining = row.pooling_deadline - Date.now();
       if (remaining > 0) {
@@ -153,11 +155,12 @@ export function recoverFromDb() {
           }
         }, remaining);
       } else if (orch.pool.length >= config.orchestrator.minPoolSize) {
-        // Timer already expired, start rounds immediately
-        startRounds(orch.queryId);
+        const staggerDelay = recoveryIndex * 2000; // 2s between each recovery
+        setTimeout(() => startRounds(orch.queryId), staggerDelay);
       }
     }
 
+    recoveryIndex++;
     console.log(`[orchestrator] Recovered query ${row.query_id}: state=${row.state}, pool=${pool.length}`);
   }
 }

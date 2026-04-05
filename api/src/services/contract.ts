@@ -51,10 +51,14 @@ const monadTestnet = {
   rpcUrls: { default: { http: [config.rpcUrl] } },
 } as const;
 
-// Clients
+// Clients — rate-limited transport to stay under Monad's 15 req/s limit
 const publicClient = createPublicClient({
   chain: monadTestnet,
-  transport: http(config.rpcUrl),
+  transport: http(config.rpcUrl, {
+    retryCount: 5,
+    retryDelay: 1500,
+    batch: { batchSize: 10 },
+  }),
 });
 
 const account = config.privateKey
