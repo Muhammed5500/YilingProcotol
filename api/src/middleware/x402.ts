@@ -1,6 +1,5 @@
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { ExactSvmScheme } from "@x402/svm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { Context, Next } from "hono";
 import { config } from "../config.js";
@@ -12,31 +11,28 @@ type PaymentEnv = {
 };
 
 /**
- * x402 Multi-Facilitator Middleware
+ * x402 Payment Middleware — Base Sepolia via Coinbase CDP
+ *
+ * All x402 payments go through Base Sepolia.
+ * Hub contract (SKCEngine etc.) stays on Monad — only payment layer is Base.
+ *
+ * Coinbase CDP facilitator: 500 writes / 10s (~50 req/s)
+ * vs Monad facilitator: 10 req/min
  *
  * Dynamic pricing: reads request body to determine actual cost.
- * - /query/create: bondPool + 15% fee (from body) — accepts ALL chains
- * - /query/:id/report: bondAmount (from on-chain) — accepts ONLY query's chain
+ * - /query/create: bondPool + 15% fee (from body)
+ * - /query/:id/report: bondAmount (from on-chain)
  */
 
-const MONAD_NETWORK = "eip155:10143" as const;
-const MONAD_USDC = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
+const BASE_SEPOLIA = "eip155:84532" as const;
 
-const MONAD_FACILITATOR_URL = config.monadFacilitatorUrl || "https://x402-facilitator.molandak.org";
-const COINBASE_FACILITATOR_URL = "https://www.x402.org/facilitator";
+const CDP_FACILITATOR_URL = config.facilitatorUrl || "https://api.cdp.coinbase.com/platform/v2/x402";
+const COINBASE_FALLBACK_URL = config.facilitatorFallbackUrl || "https://www.x402.org/facilitator";
 
-/** All supported networks for inbound payments */
+/** Supported payment network — Base Sepolia only */
 export const allNetworks: `${string}:${string}`[] = [
-  "eip155:10143",   // Monad Testnet
-  "eip155:84532",   // Base Sepolia
-  "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // Solana Devnet
+  BASE_SEPOLIA,
 ];
-
-/** Map CAIP-2 network to facilitator type */
-function getFacilitatorType(network: string): "monad" | "coinbase" {
-  if (network === MONAD_NETWORK || network.includes("10143")) return "monad";
-  return "coinbase";
-}
 
 // ─── Dynamic Price Functions ──────────────────────────────
 
@@ -78,13 +74,10 @@ function matchRoute(path: string): string | null {
 }
 
 /**
- * Build accepts array for x402 402 response.
- * For query creation: all networks (builder picks chain).
- * For reports: only the query's chain (enforced by ChainMismatch).
+ * Build accepts array for x402 402 response — Base Sepolia only.
  */
-export function buildAccepts(price: string, payTo: string, restrictToNetwork?: string) {
-  const networks = restrictToNetwork ? [restrictToNetwork] : allNetworks;
-  return (networks as `${string}:${string}`[]).map((network) => ({
+export function buildAccepts(price: string, payTo: string, _restrictToNetwork?: string) {
+  return allNetworks.map((network) => ({
     scheme: "exact" as const,
     price,
     network,
@@ -132,21 +125,18 @@ function withRetry(client: HTTPFacilitatorClient): HTTPFacilitatorClient {
 }
 
 // ─── Middleware State ───────────────────────────────────────
-let monadMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
-let coinbaseMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
+let primaryMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
+let fallbackMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
 let initialized = false;
 let initPromise: Promise<void> | null = null;
 
 async function initializeMiddleware(payTo: string) {
-  // ── Route configs ──────────────────────────────────────
-
-  // Query creation: accepts ALL networks (builder picks chain)
-  const monadCreateConfig: Record<string, any> = {
+  const routeConfig: Record<string, any> = {
     "/query/create": {
       accepts: [{
         scheme: "exact" as const,
         price: createQueryPrice,
-        network: MONAD_NETWORK,
+        network: BASE_SEPOLIA,
         payTo,
       }],
       description: "Create a truth discovery query",
@@ -156,7 +146,7 @@ async function initializeMiddleware(payTo: string) {
       accepts: [{
         scheme: "exact" as const,
         price: reportPrice,
-        network: MONAD_NETWORK,
+        network: BASE_SEPOLIA,
         payTo,
       }],
       description: "Submit a report with bond",
@@ -164,80 +154,48 @@ async function initializeMiddleware(payTo: string) {
     },
   };
 
-  const coinbaseCreateConfig: Record<string, any> = {
-    "/query/create": {
-      accepts: [
-        { scheme: "exact" as const, price: createQueryPrice, network: "eip155:84532" as const, payTo },
-        { scheme: "exact" as const, price: createQueryPrice, network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" as const, payTo },
-      ],
-      description: "Create a truth discovery query",
-      mimeType: "application/json",
-    },
-    "/query/:id/report": {
-      accepts: [
-        { scheme: "exact" as const, price: reportPrice, network: "eip155:84532" as const, payTo },
-        { scheme: "exact" as const, price: reportPrice, network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1" as const, payTo },
-      ],
-      description: "Submit a report with bond",
-      mimeType: "application/json",
-    },
-  };
-
-  // ── Monad Facilitator ────────────────────────────────────
+  // ── CDP Facilitator (primary — 500 req/10s) ──────────────
   try {
-    const monadFacilitator = withRetry(new HTTPFacilitatorClient({ url: MONAD_FACILITATOR_URL }));
-    const supported = await monadFacilitator.getSupported();
-    console.log(`[x402] Monad facilitator connected (${supported.kinds.length} kinds)`);
+    const cdpFacilitator = withRetry(new HTTPFacilitatorClient({ url: CDP_FACILITATOR_URL }));
+    const supported = await cdpFacilitator.getSupported();
+    console.log(`[x402] CDP facilitator connected (${supported.kinds.length} kinds)`);
 
-    const monadScheme = new ExactEvmScheme();
-    monadScheme.registerMoneyParser(async (amount: number, network: string) => {
-      if (network === MONAD_NETWORK) {
-        return {
-          amount: Math.floor(amount * 1_000_000).toString(),
-          asset: MONAD_USDC,
-          extra: { name: "USDC", version: "2" },
-        };
-      }
-      return null;
-    });
-
-    const monadServer = new x402ResourceServer(monadFacilitator).register(MONAD_NETWORK, monadScheme);
-    monadMiddleware = paymentMiddleware(monadCreateConfig, monadServer);
-    console.log("[x402] Monad middleware ready (dynamic pricing)");
+    const cdpServer = new x402ResourceServer(cdpFacilitator)
+      .register(BASE_SEPOLIA, new ExactEvmScheme());
+    primaryMiddleware = paymentMiddleware(routeConfig, cdpServer);
+    console.log("[x402] CDP middleware ready — Base Sepolia (dynamic pricing)");
   } catch (err: any) {
-    console.warn(`[x402] Monad facilitator failed: ${err.message}`);
+    console.warn(`[x402] CDP facilitator failed: ${err.message}`);
   }
 
-  // ── Coinbase Facilitator ─────────────────────────────────
+  // ── Coinbase Public Facilitator (fallback) ────────────────
   try {
-    const coinbaseFacilitator = withRetry(new HTTPFacilitatorClient({ url: COINBASE_FACILITATOR_URL }));
+    const coinbaseFacilitator = withRetry(new HTTPFacilitatorClient({ url: COINBASE_FALLBACK_URL }));
     const supported = await coinbaseFacilitator.getSupported();
-    console.log(`[x402] Coinbase facilitator connected (${supported.kinds.length} kinds)`);
+    console.log(`[x402] Coinbase fallback connected (${supported.kinds.length} kinds)`);
 
-    const coinbaseServer = new x402ResourceServer(coinbaseFacilitator)
-      .register("eip155:84532", new ExactEvmScheme())
-      .register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme());
-    coinbaseMiddleware = paymentMiddleware(coinbaseCreateConfig, coinbaseServer);
-    console.log("[x402] Coinbase middleware ready (dynamic pricing)");
+    const fallbackServer = new x402ResourceServer(coinbaseFacilitator)
+      .register(BASE_SEPOLIA, new ExactEvmScheme());
+    fallbackMiddleware = paymentMiddleware(routeConfig, fallbackServer);
+    console.log("[x402] Coinbase fallback middleware ready — Base Sepolia");
   } catch (err: any) {
-    console.warn(`[x402] Coinbase facilitator failed: ${err.message}`);
+    console.warn(`[x402] Coinbase fallback failed: ${err.message}`);
   }
 
-  if (!monadMiddleware && !coinbaseMiddleware) {
-    console.warn("[x402] WARNING: No facilitators available — paid routes will pass through");
+  if (!primaryMiddleware && !fallbackMiddleware) {
+    console.warn("[x402] WARNING: No facilitators available — paid routes will be blocked");
   }
 }
 
 /**
- * Multi-facilitator payment middleware.
- * Lazy-initializes on first paid request. Graceful fallback if unavailable.
+ * Base Sepolia payment middleware.
+ * Lazy-initializes on first paid request. CDP primary, Coinbase public fallback.
  */
 export function createMultiFacilitatorMiddleware(payTo: string) {
   return async (c: Context<PaymentEnv>, next: Next) => {
     const path = c.req.path;
     const route = matchRoute(path);
 
-    // Not a paid route → pass through
     if (!route) {
       return next();
     }
@@ -250,68 +208,27 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       await initPromise;
     }
 
-    // x402 v2 uses PAYMENT-SIGNATURE, v1 uses X-PAYMENT
-    const paymentHeader = c.req.header("PAYMENT-SIGNATURE") || c.req.header("payment-signature")
-      || c.req.header("X-PAYMENT") || c.req.header("x-payment");
-    const preferredChain = c.req.header("X-PREFERRED-CHAIN") || "";
+    // Inject payment chain — always Base Sepolia
+    c.set("paymentChain", BASE_SEPOLIA);
 
-    // Determine which middleware to use
-    let useMiddleware: ((c: Context, next: Next) => Promise<any>) | null = null;
-    let detectedChain = "";
+    // Try CDP primary, then Coinbase fallback
+    const useMiddleware = primaryMiddleware || fallbackMiddleware;
 
-    if (paymentHeader) {
-      try {
-        const paymentData = JSON.parse(paymentHeader);
-        detectedChain = paymentData?.accepted?.network || paymentData?.network || paymentData?.payload?.network || "";
-        useMiddleware = getFacilitatorType(detectedChain) === "monad"
-          ? monadMiddleware
-          : coinbaseMiddleware;
-      } catch {
-        try {
-          const decoded = JSON.parse(Buffer.from(paymentHeader, "base64").toString("utf-8"));
-          detectedChain = decoded?.accepted?.network || "";
-          useMiddleware = getFacilitatorType(detectedChain) === "monad"
-            ? monadMiddleware
-            : coinbaseMiddleware;
-        } catch {
-          useMiddleware = monadMiddleware;
-          detectedChain = MONAD_NETWORK;
-        }
-      }
-    } else {
-      // No payment header — initial 402 request.
-      // Use preferred chain hint or default to Monad.
-      if (preferredChain && getFacilitatorType(preferredChain) === "coinbase") {
-        useMiddleware = coinbaseMiddleware;
-      } else {
-        useMiddleware = monadMiddleware;
-      }
-    }
-
-    // Inject verified payment chain into context for downstream handlers
-    if (detectedChain) {
-      c.set("paymentChain", detectedChain);
-    }
-
-    // Use middleware if available — retry with fallback facilitator on failure
     if (useMiddleware) {
       try {
         return await useMiddleware(c, next);
       } catch (err: any) {
         console.warn(`[x402] Primary middleware error on ${path}: ${err.message}`);
 
-        // Retry with alternate facilitator if available
-        const fallback = useMiddleware === monadMiddleware ? coinbaseMiddleware : monadMiddleware;
-        if (fallback) {
+        if (fallbackMiddleware && useMiddleware !== fallbackMiddleware) {
           try {
             console.log(`[x402] Retrying ${path} with fallback facilitator...`);
-            return await fallback(c, next);
+            return await fallbackMiddleware(c, next);
           } catch (err2: any) {
             console.warn(`[x402] Fallback also failed on ${path}: ${err2.message}`);
           }
         }
 
-        // Both facilitators failed — return 402, do NOT pass through
         return c.json({
           error: "Payment processing failed. Please try again.",
           details: err.message,
@@ -319,7 +236,6 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       }
     }
 
-    // No facilitator available at all — block paid routes
     console.warn(`[x402] No facilitator for ${path} — rejecting`);
     return c.json({ error: "Payment service unavailable" }, 503);
   };
