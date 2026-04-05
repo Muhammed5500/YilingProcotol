@@ -25,6 +25,9 @@ type PaymentEnv = {
 
 // ─── Supported Networks ─────────────────────────────────────
 
+// Only list networks whose facilitators actually support them.
+// CDP facilitator supports Base Sepolia. Monad has its own facilitator.
+// Arbitrum/Ethereum Sepolia NOT supported by CDP yet — add when available.
 const EVM_NETWORKS: `${string}:${string}`[] = config.isMainnet
   ? [
       "eip155:8453",       // Base
@@ -38,8 +41,6 @@ const EVM_NETWORKS: `${string}:${string}`[] = config.isMainnet
   : [
       "eip155:84532",      // Base Sepolia
       "eip155:10143",      // Monad Testnet
-      "eip155:421614",     // Arbitrum Sepolia
-      "eip155:11155111",   // Ethereum Sepolia
     ];
 
 export const allNetworks = EVM_NETWORKS;

@@ -46,7 +46,5 @@ export const config = {
     : [
         { network: "eip155:84532", asset: "USDC" },     // Base Sepolia
         { network: "eip155:10143", asset: "USDC" },     // Monad Testnet
-        { network: "eip155:421614", asset: "USDC" },    // Arbitrum Sepolia
-        { network: "eip155:11155111", asset: "USDC" },  // Ethereum Sepolia
       ],
 };
