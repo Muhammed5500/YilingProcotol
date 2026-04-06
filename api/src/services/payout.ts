@@ -1,4 +1,4 @@
-import { createWalletClient, http, parseAbi, type Address, type Hex } from "viem";
+import { createWalletClient, createPublicClient, http, parseAbi, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { config } from "../config.js";
 
@@ -121,14 +121,15 @@ export async function executePayout(
   }
 
   // Treasury balance pre-check
-  const { createPublicClient } = await import("viem");
-  const checkClient = createPublicClient({ transport: http(chainConfig.rpcUrl) });
-  const treasuryBalance = await checkClient.readContract({
+  const publicClient = createPublicClient({ transport: http(chainConfig.rpcUrl) });
+  const treasuryBalance = await publicClient.readContract({
     address: chainConfig.usdcAddress,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: [account.address],
   });
+
+  console.log(`[Payout] ${chainConfig.chainName} | From: ${account.address} | To: ${recipientAddress} | Amount: ${usdcAmount} USDC (${amount} WAD) | Treasury balance: ${treasuryBalance}`);
 
   if (treasuryBalance < usdcAmount) {
     throw new Error(
@@ -145,6 +146,14 @@ export async function executePayout(
     args: [recipientAddress, usdcAmount],
     chain: undefined,
   });
+
+  // Wait for on-chain confirmation
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status === "reverted") {
+    throw new Error(`ERC-20 transfer reverted on-chain. txHash: ${txHash}`);
+  }
+
+  console.log(`[Payout] Success! txHash: ${txHash} | Block: ${receipt.blockNumber}`);
 
   return {
     txHash,
@@ -164,7 +173,6 @@ export async function getAllTreasuryBalances(): Promise<
   const results = [];
   for (const [chainId, chainConfig] of Object.entries(TREASURY_CHAINS)) {
     try {
-      const { createPublicClient } = await import("viem");
       const client = createPublicClient({ transport: http(chainConfig.rpcUrl) });
       const balance = await client.readContract({
         address: chainConfig.usdcAddress,
@@ -208,7 +216,6 @@ export async function getTreasuryBalance(
 
   const account = privateKeyToAccount(config.privateKey as Hex);
 
-  const { createPublicClient } = await import("viem");
   const publicClient = createPublicClient({
     transport: http(chainConfig.rpcUrl),
   });

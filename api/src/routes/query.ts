@@ -406,9 +406,6 @@ query.post("/:id/claim", async (c) => {
     // Calculate net payout after settlement rake
     const { rake, netPayout } = calculateNetPayout(grossPayout);
 
-    // Record claim on Hub contract
-    const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
-
     // Determine payout chain: agent can override, otherwise use their bond source chain
     // Look up the agent's report to find which chain they bonded from
     let bondChain = "eip155:10143"; // fallback to Monad
@@ -421,8 +418,8 @@ query.post("/:id/claim", async (c) => {
       }
     }
 
-    // Execute direct ERC-20 transfer from protocol treasury
-    // Payout goes to the chain the agent bonded from, unless explicitly overridden
+    // Execute ERC-20 transfer FIRST — if this fails, hasClaimed stays false
+    // so the agent can retry. Only record claim on-chain after successful transfer.
     let payoutResult;
     try {
       payoutResult = await executePayout(
@@ -431,7 +428,7 @@ query.post("/:id/claim", async (c) => {
         payoutChain || bondChain
       );
     } catch (payoutErr: any) {
-      // Claim recorded but payout transfer failed — needs manual resolution
+      // Transfer failed — hasClaimed is still false, agent can retry
       return c.json({
         queryId: queryId.toString(),
         reporter,
@@ -440,11 +437,13 @@ query.post("/:id/claim", async (c) => {
           rake: rake.toString(),
           net: netPayout.toString(),
         },
-        hubTxHash: hubResult.hash,
-        status: "claimed_pending_payout",
-        error: `Claim recorded but payout transfer failed: ${payoutErr.message}. Contact support.`,
-      }, 202);
+        status: "payout_failed",
+        error: `Payout transfer failed: ${payoutErr.message}. You can retry.`,
+      }, 500);
     }
+
+    // Transfer succeeded — now record claim on-chain to prevent double-claiming
+    const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
 
     emitEvent("payout.claimed", {
       queryId: queryId.toString(),
