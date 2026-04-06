@@ -375,4 +375,42 @@ export async function syncQueriesFromChain() {
   }
 
   console.log(`[db] Sync complete — ${chainCount} queries in DB`);
+
+  // Also update resolved status for existing queries
+  await refreshResolvedStatus();
+}
+
+/**
+ * Check on-chain resolved status for all unresolved queries in DB
+ * and update SQLite accordingly.
+ */
+export async function refreshResolvedStatus() {
+  const { getQueryInfo } = await import("./contract.js");
+
+  const unresolvedRows = db.prepare("SELECT query_id FROM queries WHERE resolved = 0").all() as { query_id: number }[];
+  if (unresolvedRows.length === 0) return;
+
+  for (const row of unresolvedRows) {
+    try {
+      const info = await getQueryInfo(BigInt(row.query_id));
+      if (info.resolved) {
+        markResolved(row.query_id);
+        // Also update report count and price
+        db.prepare("UPDATE queries SET report_count = ?, current_price = ?, updated_at = ? WHERE query_id = ?")
+          .run(Number(info.reportCount), info.currentPrice.toString(), Date.now(), row.query_id);
+        console.log(`[db] Query #${row.query_id} marked as resolved`);
+      }
+    } catch {}
+  }
+}
+
+/**
+ * Start periodic background sync (every 30s)
+ */
+export function startBackgroundSync() {
+  setInterval(async () => {
+    try {
+      await syncQueriesFromChain();
+    } catch {}
+  }, 30_000);
 }

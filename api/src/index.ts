@@ -174,4 +174,7 @@ serve({ fetch: app.fetch, port: config.port }, async (info) => {
   // Start background retry job for failed settlements (every 60s)
   const { startRetryJob } = await import("./services/txTracker.js");
   startRetryJob();
+
+  // Start periodic chain→DB sync (every 30s) — picks up new queries and resolved status
+  db.startBackgroundSync();
 });
