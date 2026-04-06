@@ -319,7 +319,8 @@ export async function syncQueriesFromChain() {
   const dbCount = getDbQueryCount();
 
   if (dbCount >= chainCount) {
-    console.log(`[db] DB up to date (${dbCount} queries)`);
+    // DB has all queries, but some may have resolved on-chain since last sync
+    await refreshResolvedStatus();
     return;
   }
 
