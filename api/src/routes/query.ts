@@ -397,6 +397,12 @@ query.post("/:id/claim", async (c) => {
 
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
 
+    // Guard: check if already claimed on-chain (prevents double payouts)
+    const alreadyClaimed = await contract.hasClaimed(queryId, reporter as Address);
+    if (alreadyClaimed) {
+      return c.json({ error: "Already claimed", status: "already_claimed" }, 400);
+    }
+
     // Get gross payout from Hub contract
     const grossPayout = await contract.getPayoutAmount(queryId, reporter as Address);
     if (grossPayout === 0n) {
@@ -406,8 +412,11 @@ query.post("/:id/claim", async (c) => {
     // Calculate net payout after settlement rake
     const { rake, netPayout } = calculateNetPayout(grossPayout);
 
+    // Record claim on-chain FIRST to prevent double payouts.
+    // If this fails, no transfer happens — agent can retry safely.
+    const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
+
     // Determine payout chain: agent can override, otherwise use their bond source chain
-    // Look up the agent's report to find which chain they bonded from
     let bondChain = "eip155:10143"; // fallback to Monad
     const reportCount = await contract.getReportCount(queryId);
     for (let i = 0n; i < reportCount; i++) {
@@ -418,8 +427,7 @@ query.post("/:id/claim", async (c) => {
       }
     }
 
-    // Execute ERC-20 transfer FIRST — if this fails, hasClaimed stays false
-    // so the agent can retry. Only record claim on-chain after successful transfer.
+    // Execute ERC-20 transfer from treasury
     let payoutResult;
     try {
       payoutResult = await executePayout(
@@ -428,7 +436,8 @@ query.post("/:id/claim", async (c) => {
         payoutChain || bondChain
       );
     } catch (payoutErr: any) {
-      // Transfer failed — hasClaimed is still false, agent can retry
+      // Claim recorded but transfer failed — needs manual resolution
+      // hasClaimed is true, so no double payout risk
       return c.json({
         queryId: queryId.toString(),
         reporter,
@@ -437,13 +446,11 @@ query.post("/:id/claim", async (c) => {
           rake: rake.toString(),
           net: netPayout.toString(),
         },
-        status: "payout_failed",
-        error: `Payout transfer failed: ${payoutErr.message}. You can retry.`,
-      }, 500);
+        hubTxHash: hubResult.hash,
+        status: "claimed_pending_payout",
+        error: `Claim recorded but payout transfer failed: ${payoutErr.message}. Contact support.`,
+      }, 202);
     }
-
-    // Transfer succeeded — now record claim on-chain to prevent double-claiming
-    const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
 
     emitEvent("payout.claimed", {
       queryId: queryId.toString(),

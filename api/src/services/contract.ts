@@ -214,6 +214,16 @@ export async function recordPayoutClaim(queryId: bigint, reporter: Address) {
   });
 }
 
+export async function hasClaimed(queryId: bigint, reporter: Address): Promise<boolean> {
+  const result = await publicClient.readContract({
+    address: config.skcEngineAddress as Address,
+    abi: skcEngineAbi,
+    functionName: "hasClaimed",
+    args: [queryId, reporter],
+  });
+  return result as boolean;
+}
+
 export async function forceResolve(queryId: bigint) {
   if (!walletClient) throw new Error("Wallet not configured");
 
