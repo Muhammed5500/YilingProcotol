@@ -223,7 +223,7 @@ export async function forceResolve(queryId: bigint) {
       abi: skcEngineAbi,
       functionName: "forceResolve",
       args: [queryId],
-      gas: 1_000_000n,
+      gas: 3_000_000n,
     });
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
