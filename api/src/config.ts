@@ -11,6 +11,11 @@ export const config = {
   agentRegistryAddress: process.env.AGENT_REGISTRY_ADDRESS || "",
   reputationManagerAddress: process.env.REPUTATION_MANAGER_ADDRESS || "",
 
+  // Treasury (outbound payouts — direct ERC-20 transfers to agents)
+  // TREASURY_PRIVATE_KEY controls the wallet that pays agents
+  // This should be the same wallet that receives x402 inbound payments (payTo address)
+  treasuryPrivateKey: process.env.TREASURY_PRIVATE_KEY || "",
+
   // x402 (inbound payments — multi-chain, facilitator per network)
   facilitatorUrl: process.env.X402_FACILITATOR_URL || "https://api.cdp.coinbase.com/platform/v2/x402",
   facilitatorFallbackUrl: process.env.X402_FACILITATOR_FALLBACK_URL || "https://www.x402.org/facilitator",

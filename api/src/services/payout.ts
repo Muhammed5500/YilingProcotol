@@ -101,11 +101,12 @@ export async function executePayout(
     );
   }
 
-  if (!config.privateKey) {
-    throw new Error("Treasury private key not configured");
+  const treasuryKey = config.treasuryPrivateKey || config.privateKey;
+  if (!treasuryKey) {
+    throw new Error("Treasury private key not configured (set TREASURY_PRIVATE_KEY)");
   }
 
-  const account = privateKeyToAccount(config.privateKey as Hex);
+  const account = privateKeyToAccount(treasuryKey as Hex);
 
   const walletClient = createWalletClient({
     account,
@@ -167,8 +168,9 @@ export async function executePayout(
 export async function getAllTreasuryBalances(): Promise<
   { chain: string; chainId: string; balance: string; balanceUSDC: string }[]
 > {
-  if (!config.privateKey) throw new Error("Treasury private key not configured");
-  const account = privateKeyToAccount(config.privateKey as Hex);
+  const treasuryKey = config.treasuryPrivateKey || config.privateKey;
+  if (!treasuryKey) throw new Error("Treasury private key not configured (set TREASURY_PRIVATE_KEY)");
+  const account = privateKeyToAccount(treasuryKey as Hex);
 
   const results = [];
   for (const [chainId, chainConfig] of Object.entries(TREASURY_CHAINS)) {
@@ -210,11 +212,12 @@ export async function getTreasuryBalance(
     throw new Error(`Chain ${sourceChain} not configured`);
   }
 
-  if (!config.privateKey) {
-    throw new Error("Treasury private key not configured");
+  const treasuryKey = config.treasuryPrivateKey || config.privateKey;
+  if (!treasuryKey) {
+    throw new Error("Treasury private key not configured (set TREASURY_PRIVATE_KEY)");
   }
 
-  const account = privateKeyToAccount(config.privateKey as Hex);
+  const account = privateKeyToAccount(treasuryKey as Hex);
 
   const publicClient = createPublicClient({
     transport: http(chainConfig.rpcUrl),
@@ -244,7 +247,8 @@ async function executeSolanaPayout(
   const { Connection, Keypair, PublicKey } = await import("@solana/web3.js");
   const { getOrCreateAssociatedTokenAccount, transfer } = await import("@solana/spl-token");
 
-  if (!config.privateKey) throw new Error("Treasury private key not configured");
+  const treasuryKey = config.treasuryPrivateKey || config.privateKey;
+  if (!treasuryKey) throw new Error("Treasury private key not configured (set TREASURY_PRIVATE_KEY)");
 
   // Convert WAD (18 decimals) to USDC (6 decimals)
   const usdcAmount = Number(amount / 1_000_000_000_000n);
@@ -253,7 +257,7 @@ async function executeSolanaPayout(
   const connection = new Connection(solConfig.rpcUrl, "confirmed");
 
   // Derive Solana keypair from private key (first 32 bytes)
-  const privKeyBytes = Buffer.from(config.privateKey.replace("0x", ""), "hex");
+  const privKeyBytes = Buffer.from(treasuryKey.replace("0x", ""), "hex");
   const keypair = Keypair.fromSeed(privKeyBytes);
 
   const mintPubkey = new PublicKey(solConfig.usdcMint);
