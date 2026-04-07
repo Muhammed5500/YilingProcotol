@@ -416,6 +416,15 @@ query.post("/:id/claim", async (c) => {
 
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
 
+    // Pre-check: did this agent even report? (DB only, no RPC)
+    const dbReports = db.getReports(Number(queryId));
+    const hasReported = dbReports.some(
+      (r) => r.reporter.toLowerCase() === (reporter as string).toLowerCase()
+    );
+    if (!hasReported) {
+      return c.json({ error: "No report found for this agent" }, 400);
+    }
+
     // Pre-check: already claimed?
     const alreadyClaimed = await contract.hasClaimed(queryId, reporter as Address);
     if (alreadyClaimed) {
