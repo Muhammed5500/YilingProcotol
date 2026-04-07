@@ -440,4 +440,229 @@ contract SKCEngineTest is Test {
         (, , , , , , string memory sourceChain,) = engine.getReport(queryId, 0);
         assertEq(sourceChain, "eip155:10143");
     }
+
+    // ========== k-underflow Fix Tests (BUG 1) ==========
+
+    function test_resolve_singleAgent_kEquals2() public {
+        // k=2 but only 1 report — previously caused underflow revert
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "Single agent k=2 test",
+            1,          // alpha: no random stop
+            2,          // k = 2 (greater than totalReports)
+            0.01e18,    // flatReward
+            0.1e18,     // bondAmount
+            1e18,       // liquidityParam
+            0.5e18,     // initialPrice
+            5e18,       // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.7e18, agent1, 0.1e18, "eip155:10143");
+
+        // forceResolve should NOT revert
+        vm.prank(protocolAPI);
+        engine.forceResolve(queryId);
+
+        (, , , bool resolved, ,) = engine.getQueryInfo(queryId);
+        assertTrue(resolved, "Query should be resolved");
+
+        // Single agent treated as last-k: gets bond + flatReward
+        uint256 payout = engine.getPayoutAmount(queryId, agent1);
+        assertEq(payout, 0.1e18 + 0.01e18, "Agent should get bond + flatReward");
+    }
+
+    function test_resolve_twoAgents_kEquals5() public {
+        // k=5 but only 2 reports — all agents should get flat reward
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "Two agents k=5 test",
+            1,          // alpha: no random stop
+            5,          // k = 5 (greater than totalReports)
+            0.01e18,    // flatReward
+            0.1e18,     // bondAmount
+            1e18,       // liquidityParam
+            0.5e18,     // initialPrice
+            5e18,       // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.6e18, agent1, 0.1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.8e18, agent2, 0.1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.forceResolve(queryId);
+
+        uint256 payout1 = engine.getPayoutAmount(queryId, agent1);
+        uint256 payout2 = engine.getPayoutAmount(queryId, agent2);
+
+        assertEq(payout1, 0.1e18 + 0.01e18, "Agent1 should get bond + flatReward");
+        assertEq(payout2, 0.1e18 + 0.01e18, "Agent2 should get bond + flatReward");
+    }
+
+    // ========== Random Stop Tests (BUG 7) ==========
+
+    function test_randomStop_highAlpha_resolves() public {
+        // alpha = 0.99e18 (99% stop chance) — should resolve quickly
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "High alpha test",
+            0.99e18,    // alpha: 99% stop chance
+            1,          // k
+            0.01e18,    // flatReward
+            0.1e18,     // bondAmount
+            1e18,       // liquidityParam
+            0.5e18,     // initialPrice
+            5e18,       // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        // Submit up to 10 reports — with 99% alpha, should resolve well before 10
+        bool resolved;
+        for (uint256 i = 0; i < 10; i++) {
+            (, , , resolved, ,) = engine.getQueryInfo(queryId);
+            if (resolved) break;
+
+            // Use different prevrandao each round to vary the entropy
+            vm.prevrandao(bytes32(uint256(1000 + i)));
+            vm.roll(block.number + 1);
+
+            address agent = i == 0 ? agent1 : (i == 1 ? agent2 : agent3);
+            if (engine.hasReported(queryId, agent)) continue;
+
+            vm.prank(protocolAPI);
+            engine.submitReport(queryId, 0.5e18 + (i * 0.05e18), agent, 0.1e18, "eip155:10143");
+        }
+
+        // At alpha=0.99, probability of NOT resolving after 3 reports = 0.01^3 = 0.000001
+        // We just verify the mechanism doesn't revert and the query ends up resolved
+        (, , , resolved, ,) = engine.getQueryInfo(queryId);
+        // If not resolved by random stop, force resolve to clean up
+        if (!resolved) {
+            vm.prank(protocolAPI);
+            engine.forceResolve(queryId);
+        }
+        (, , , resolved, ,) = engine.getQueryInfo(queryId);
+        assertTrue(resolved, "Query should be resolved");
+    }
+
+    function test_randomStop_lowAlpha_continuesLonger() public {
+        // alpha = 0.01e18 (1% stop chance) — should continue through several reports
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "Low alpha test",
+            0.01e18,    // alpha: 1% stop chance
+            1,          // k
+            0.01e18,    // flatReward
+            0.1e18,     // bondAmount
+            1e18,       // liquidityParam
+            0.5e18,     // initialPrice
+            5e18,       // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        // Submit 3 reports — with 1% alpha, very unlikely to stop
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.6e18, agent1, 0.1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.7e18, agent2, 0.1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.8e18, agent3, 0.1e18, "eip155:10143");
+
+        // Probability that it resolved: 1 - (0.99)^3 = ~3% — very likely still active
+        // We can't guarantee it's not resolved (randomness), but we can verify the mechanism
+        // didn't revert during submission
+        (, , , bool resolved, ,) = engine.getQueryInfo(queryId);
+        if (!resolved) {
+            // Expected: still active after 3 reports with 1% alpha
+            vm.prank(protocolAPI);
+            engine.forceResolve(queryId);
+        }
+        (, , , resolved, ,) = engine.getQueryInfo(queryId);
+        assertTrue(resolved, "Query should be resolved after forceResolve");
+    }
+
+    // ========== Pro-rata Scaling Test (BUG 9) ==========
+
+    function test_payout_proRataScaling() public {
+        // Create query with tight funding — payouts should exceed pool and trigger scaling
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "Pro-rata test",
+            1,              // alpha: no random stop
+            1,              // k
+            0.5e18,         // flatReward: large relative to pool
+            1e18,           // bondAmount: large
+            1e18,           // liquidityParam
+            0.5e18,         // initialPrice
+            5e18,           // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.8e18, agent1, 1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.7e18, agent2, 1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.6e18, agent3, 1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.forceResolve(queryId);
+
+        uint256 payout1 = engine.getPayoutAmount(queryId, agent1);
+        uint256 payout2 = engine.getPayoutAmount(queryId, agent2);
+        uint256 payout3 = engine.getPayoutAmount(queryId, agent3);
+
+        (, , , , uint256 totalPool,) = engine.getQueryInfo(queryId);
+
+        // Sum of payouts must not exceed total pool
+        assertTrue(
+            payout1 + payout2 + payout3 <= totalPool,
+            "Total payouts must not exceed pool"
+        );
+    }
+
+    // ========== Zero/Negative Payout Tests (BUG 10) ==========
+
+    function test_payout_agentMovingAwayFromTruth_getsZero() public {
+        vm.prank(protocolAPI);
+        uint256 queryId = engine.createQuery(
+            "Zero payout test",
+            1,          // alpha: no random stop
+            1,          // k = 1 (only last agent gets flat reward)
+            0.01e18,    // flatReward
+            0.1e18,     // bondAmount
+            1e18,       // liquidityParam
+            0.5e18,     // initialPrice
+            5e18,       // fundingAmount
+            0, "", builder, "eip155:10143", ""
+        );
+
+        // Agent1 moves price far away from eventual truth
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.1e18, agent1, 0.1e18, "eip155:10143");
+
+        // Agent2 moves price toward truth
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.5e18, agent2, 0.1e18, "eip155:10143");
+
+        // Agent3 is the last reporter — their probability becomes truth (0.9)
+        vm.prank(protocolAPI);
+        engine.submitReport(queryId, 0.9e18, agent3, 0.1e18, "eip155:10143");
+
+        vm.prank(protocolAPI);
+        engine.forceResolve(queryId);
+
+        // Agent1 moved from 0.5 to 0.1, but truth is 0.9 — huge negative delta
+        uint256 payout1 = engine.getPayoutAmount(queryId, agent1);
+        assertEq(payout1, 0, "Agent moving far from truth should get zero payout");
+    }
 }

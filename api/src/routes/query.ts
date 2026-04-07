@@ -204,6 +204,16 @@ query.post("/:id/report", async (c) => {
     const paymentChain = c.get("paymentChain") as string | undefined;
     const sourceChain = paymentChain || bodySourceChain || "unknown";
 
+    // Pre-check: bond must be paid on query's chain (avoid wasting gas on ChainMismatch revert)
+    const expectedChain = orch?.queryChain;
+    if (expectedChain && sourceChain !== "unknown" && sourceChain !== expectedChain) {
+      return c.json({
+        error: "Bond must be paid on query chain",
+        expected: expectedChain,
+        received: sourceChain,
+      }, 400);
+    }
+
     // Race condition check: verify query is still active BEFORE submitting
     const active = await contract.isQueryActive(queryId);
     if (!active) {
@@ -222,6 +232,15 @@ query.post("/:id/report", async (c) => {
         queryId: queryId.toString(),
         status: "rejected_duplicate",
       }, 409);
+    }
+
+    // Pre-check: agent must be registered (avoid wasting gas on AgentNotRegistered revert)
+    const isRegistered = await contract.isRegisteredAgent(reporter as Address);
+    if (!isRegistered) {
+      return c.json({
+        error: "Agent not registered. Mint ERC-8004 identity and call joinEcosystem first.",
+        registrationEndpoint: "POST /agent/register",
+      }, 403);
     }
 
     const params = await contract.getQueryParams(queryId);
@@ -397,10 +416,10 @@ query.post("/:id/claim", async (c) => {
 
     if (!reporter) return c.json({ error: "reporter address is required" }, 400);
 
-    // Guard: check if already claimed on-chain (prevents double payouts)
+    // Pre-check: already claimed?
     const alreadyClaimed = await contract.hasClaimed(queryId, reporter as Address);
     if (alreadyClaimed) {
-      return c.json({ error: "Already claimed", status: "already_claimed" }, 400);
+      return c.json({ error: "Already claimed", status: "already_claimed" }, 409);
     }
 
     // Get gross payout from Hub contract
@@ -411,10 +430,6 @@ query.post("/:id/claim", async (c) => {
 
     // Calculate net payout after settlement rake
     const { rake, netPayout } = calculateNetPayout(grossPayout);
-
-    // Record claim on-chain FIRST to prevent double payouts.
-    // If this fails, no transfer happens — agent can retry safely.
-    const hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
 
     // Determine payout chain: agent can override, otherwise use their bond source chain
     let bondChain = "eip155:10143"; // fallback to Monad
@@ -427,7 +442,8 @@ query.post("/:id/claim", async (c) => {
       }
     }
 
-    // Execute ERC-20 transfer from treasury
+    // Execute ERC-20 transfer FIRST (before recording claim on-chain)
+    // This way, if transfer fails, agent can retry — they aren't marked as claimed yet
     let payoutResult;
     try {
       payoutResult = await executePayout(
@@ -436,8 +452,20 @@ query.post("/:id/claim", async (c) => {
         payoutChain || bondChain
       );
     } catch (payoutErr: any) {
-      // Claim recorded but transfer failed — needs manual resolution
-      // hasClaimed is true, so no double payout risk
+      // Transfer failed — agent NOT marked as claimed, can retry later
+      return c.json({
+        queryId: queryId.toString(),
+        reporter,
+        error: `Payout transfer failed: ${payoutErr.message}. You can retry.`,
+      }, 500);
+    }
+
+    // Record claim on Hub contract (transfer already succeeded)
+    let hubResult;
+    try {
+      hubResult = await contract.recordPayoutClaim(queryId, reporter as Address);
+    } catch (hubErr: any) {
+      // Transfer succeeded but on-chain record failed — agent got paid, needs reconciliation
       return c.json({
         queryId: queryId.toString(),
         reporter,
@@ -445,10 +473,11 @@ query.post("/:id/claim", async (c) => {
           gross: grossPayout.toString(),
           rake: rake.toString(),
           net: netPayout.toString(),
+          chain: payoutResult.chain,
+          payoutTxHash: payoutResult.txHash,
         },
-        hubTxHash: hubResult.hash,
-        status: "claimed_pending_payout",
-        error: `Claim recorded but payout transfer failed: ${payoutErr.message}. Contact support.`,
+        status: "paid_pending_record",
+        error: `Payout sent but on-chain record failed: ${hubErr.message}`,
       }, 202);
     }
 

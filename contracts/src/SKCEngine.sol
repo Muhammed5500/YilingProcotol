@@ -393,19 +393,24 @@ contract SKCEngine {
         // Final price = last report's probability (truth reference)
         uint256 qFinal = reports[queryId][totalReports - 1].probability;
 
+        // Clamp k to actual report count (prevents underflow when k > totalReports)
+        uint256 effectiveK = q.k > totalReports ? totalReports : q.k;
+
         // Calculate payouts
         uint256 totalPayouts = 0;
         uint256[] memory rawPayouts = new uint256[](totalReports);
+        int256[] memory deltas = new int256[](totalReports);
 
         for (uint256 i = 0; i < totalReports; i++) {
             Report storage r = reports[queryId][i];
 
-            if (i >= totalReports - q.k) {
+            if (i >= totalReports - effectiveK) {
                 // Last k agents: bond + flat reward
                 rawPayouts[i] = r.bondAmount + q.flatReward;
             } else {
                 // Scored agents: max(0, bond + b * deltaS)
                 int256 deltaS = FixedPointMath.deltaPayout(qFinal, r.priceBefore, r.priceAfter);
+                deltas[i] = deltaS;
                 int256 rawPayout = int256(r.bondAmount) + (int256(q.liquidityParam) * deltaS) / WAD_INT;
 
                 if (rawPayout > 0) {
@@ -429,8 +434,8 @@ contract SKCEngine {
             Report storage r = reports[queryId][i];
             payouts[queryId][r.reporter] = rawPayouts[i];
 
-            // Write reputation to ERC-8004
-            int256 deltaS = FixedPointMath.deltaPayout(qFinal, r.priceBefore, r.priceAfter);
+            // Write reputation to ERC-8004 (use cached delta from payout loop)
+            int256 deltaS = deltas[i];
             int128 reputationScore = int128(deltaS * 10000 / WAD_INT);
 
             try reputationManager.writeReputation(

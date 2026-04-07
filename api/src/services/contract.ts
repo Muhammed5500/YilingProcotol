@@ -339,6 +339,15 @@ export async function hasReported(queryId: bigint, reporter: Address) {
   });
 }
 
+export async function hasClaimed(queryId: bigint, reporter: Address) {
+  return publicClient.readContract({
+    address: config.skcEngineAddress as Address,
+    abi: skcEngineAbi,
+    functionName: "hasClaimed",
+    args: [queryId, reporter],
+  });
+}
+
 // ========== AGENT FUNCTIONS ==========
 
 export async function isRegisteredAgent(wallet: Address) {
