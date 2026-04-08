@@ -245,7 +245,22 @@ async function initializeMiddleware(payTo: string) {
 
       const monadServer = new x402ResourceServer(monadFacilitator);
       for (const network of monadNetworks) {
-        monadServer.register(network, new ExactEvmScheme());
+        // Monad Testnet (eip155:10143) is not in @x402/evm's default asset list,
+        // so we register a custom money parser with the testnet USDC address
+        const scheme = new ExactEvmScheme();
+        scheme.registerMoneyParser(async (amount: number, net: string) => {
+          if (net === "eip155:10143") {
+            const decimals = 6;
+            const tokenAmount = Math.round(amount * 10 ** decimals).toString();
+            return {
+              amount: tokenAmount,
+              asset: "0x534b2f3A21130d7a60830c2Df862319e593943A3", // Monad Testnet USDC
+              extra: { name: "USDC", version: "2" },
+            };
+          }
+          return null; // fall through to default
+        });
+        monadServer.register(network, scheme);
       }
       monadMiddleware = paymentMiddleware(monadRouteConfig, monadServer);
       console.log(`[x402] Monad middleware ready`);
