@@ -75,8 +75,14 @@ function rateLimitedFetch(url: string | URL | globalThis.Request, init?: Request
     .then(() => fetch(url, init));
 }
 
+const account = config.privateKey
+  ? privateKeyToAccount(config.privateKey as Hex)
+  : undefined;
+
 // Clients — rate-limited + multicall batching for Monad public RPC (15 req/s)
+// account is set so eth_call uses a funded `from` address (Monad requires 10+ MON reserve)
 const publicClient = createPublicClient({
+  account,
   chain: monadTestnet,
   transport: http(config.rpcUrl, {
     retryCount: 5,
@@ -88,10 +94,6 @@ const publicClient = createPublicClient({
     multicall: true, // Batch multiple readContract calls into single multicall
   },
 });
-
-const account = config.privateKey
-  ? privateKeyToAccount(config.privateKey as Hex)
-  : undefined;
 
 const walletClient = account
   ? createWalletClient({

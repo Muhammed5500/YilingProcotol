@@ -398,11 +398,11 @@ query.get("/:id/status", (c) => {
  * POST /query/:id/claim
  * Claim payout after resolution (free — no x402 payment required)
  *
- * Fee model (settlement rake):
- *   Agent earned 80 USDC gross
- *   Rake = 80 * 5% = 4 USDC
- *   Agent receives 76 USDC via direct ERC-20 transfer
- *   4 USDC stays in protocol treasury as revenue
+ * Fee model (settlement rake — profit only):
+ *   Agent deposited 1 USDC bond, earned 1.80 USDC gross
+ *   Profit = 1.80 - 1.00 = 0.80 USDC
+ *   Rake = 0.80 * 5% = 0.04 USDC
+ *   Agent receives 1.76 USDC via direct ERC-20 transfer
  *
  * IMPORTANT: Payouts use direct ERC-20 transfers from protocol
  * treasury wallets, NOT x402. x402 is pull-only (client→server).
@@ -437,19 +437,21 @@ query.post("/:id/claim", async (c) => {
       return c.json({ error: "No payout available" }, 400);
     }
 
-    // Calculate net payout after settlement rake
-    const { rake, netPayout } = calculateNetPayout(grossPayout);
-
-    // Determine payout chain: agent can override, otherwise use their bond source chain
+    // Determine payout chain and bond amount from agent's report
     let bondChain = "eip155:10143"; // fallback to Monad
+    let agentBondAmount = 0n;
     const reportCount = await contract.getReportCount(queryId);
     for (let i = 0n; i < reportCount; i++) {
       const report = await contract.getReport(queryId, i);
       if (report.reporter.toLowerCase() === (reporter as string).toLowerCase()) {
         bondChain = report.sourceChain || "eip155:10143";
+        agentBondAmount = report.bondAmount;
         break;
       }
     }
+
+    // Calculate net payout — rake only applies to profit above bond
+    const { rake, netPayout } = calculateNetPayout(grossPayout, agentBondAmount);
 
     // Execute ERC-20 transfer FIRST (before recording claim on-chain)
     // This way, if transfer fails, agent can retry — they aren't marked as claimed yet
@@ -528,15 +530,28 @@ query.get("/:id/payout/:reporter", async (c) => {
     const reporter = c.req.param("reporter") as Address;
 
     const grossPayout = await contract.getPayoutAmount(queryId, reporter);
-    const { rake, netPayout } = calculateNetPayout(grossPayout);
+
+    // Find agent's bond amount for profit-only rake calculation
+    let agentBondAmount = 0n;
+    const reportCount = await contract.getReportCount(queryId);
+    for (let i = 0n; i < reportCount; i++) {
+      const report = await contract.getReport(queryId, i);
+      if (report.reporter.toLowerCase() === reporter.toLowerCase()) {
+        agentBondAmount = report.bondAmount;
+        break;
+      }
+    }
+
+    const { rake, netPayout } = calculateNetPayout(grossPayout, agentBondAmount);
 
     return c.json({
       queryId: queryId.toString(),
       reporter,
       gross: grossPayout.toString(),
+      bond: agentBondAmount.toString(),
       rake: rake.toString(),
       net: netPayout.toString(),
-      rakeRate: "5%",
+      rakeRate: "5% (profit only)",
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);

@@ -213,7 +213,19 @@ export function createMCPServer() {
     async ({ queryId, reporter }) => {
       const id = BigInt(queryId);
       const grossPayout = await contract.getPayoutAmount(id, reporter as Address);
-      const { rake, netPayout } = calculateNetPayout(grossPayout);
+
+      // Find agent's bond for profit-only rake
+      let agentBondAmount = 0n;
+      const reportCount = await contract.getReportCount(id);
+      for (let i = 0n; i < reportCount; i++) {
+        const report = await contract.getReport(id, i);
+        if (report.reporter.toLowerCase() === reporter.toLowerCase()) {
+          agentBondAmount = report.bondAmount;
+          break;
+        }
+      }
+
+      const { rake, netPayout } = calculateNetPayout(grossPayout, agentBondAmount);
 
       return {
         content: [{
@@ -222,9 +234,10 @@ export function createMCPServer() {
             queryId,
             reporter,
             gross: grossPayout.toString(),
+            bond: agentBondAmount.toString(),
             rake: rake.toString(),
             net: netPayout.toString(),
-            rakeRate: "5%",
+            rakeRate: "5% (profit only)",
           }, null, 2),
         }],
       };
@@ -251,7 +264,18 @@ export function createMCPServer() {
           };
         }
 
-        const { rake, netPayout } = calculateNetPayout(grossPayout);
+        // Find agent's bond for profit-only rake
+        let agentBondAmount = 0n;
+        const reportCount = await contract.getReportCount(id);
+        for (let i = 0n; i < reportCount; i++) {
+          const report = await contract.getReport(id, i);
+          if (report.reporter.toLowerCase() === reporter.toLowerCase()) {
+            agentBondAmount = report.bondAmount;
+            break;
+          }
+        }
+
+        const { rake, netPayout } = calculateNetPayout(grossPayout, agentBondAmount);
         const hubResult = await contract.recordPayoutClaim(id, reporter as Address);
 
         // Payout via direct ERC-20 transfer from treasury

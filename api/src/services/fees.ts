@@ -55,21 +55,36 @@ export function calculateCreationCharge(bondPool: bigint): {
 /**
  * Calculate the actual payout after settlement rake
  *
- * Agent earned 80 USDC gross:
- *   rake = 80 * 0.05 = 4 USDC
- *   net payout = 80 - 4 = 76 USDC
+ * Rake is applied ONLY to profit above the bond, not the bond itself.
+ * This ensures agents who break even (ΔS=0) get their full bond back.
+ *
+ * Agent deposited 1 USDC bond, earned 1.50 USDC gross:
+ *   profit = 1.50 - 1.00 = 0.50 USDC
+ *   rake = 0.50 * 0.05 = 0.025 USDC
+ *   net payout = 1.50 - 0.025 = 1.475 USDC
+ *
+ * Agent deposited 1 USDC bond, earned 0.80 USDC gross (slashed):
+ *   profit = 0.80 - 1.00 = -0.20 → no rake
+ *   net payout = 0.80 USDC
  */
-export function calculateNetPayout(grossPayout: bigint): {
+export function calculateNetPayout(grossPayout: bigint, bondAmount?: bigint): {
   grossPayout: bigint;
   rake: bigint;
   netPayout: bigint;
 } {
-  // Only rake positive payouts (agents who lost bond get 0, no negative rake)
   if (grossPayout <= 0n) {
     return { grossPayout, rake: 0n, netPayout: 0n };
   }
 
-  const rake = (grossPayout * BigInt(Math.floor(FEE_CONFIG.settlementRakeRate * 10000))) / 10000n;
+  const bond = bondAmount ?? 0n;
+  const profit = grossPayout - bond;
+
+  // Only rake the profit portion; if agent lost money (profit <= 0), no rake
+  if (profit <= 0n) {
+    return { grossPayout, rake: 0n, netPayout: grossPayout };
+  }
+
+  const rake = (profit * BigInt(Math.floor(FEE_CONFIG.settlementRakeRate * 10000))) / 10000n;
 
   return {
     grossPayout,
@@ -83,7 +98,8 @@ export function calculateNetPayout(grossPayout: bigint): {
  */
 export function calculateQueryRevenue(
   bondPool: bigint,
-  positivePayouts: bigint[]
+  positivePayouts: bigint[],
+  bondAmount?: bigint
 ): {
   creationFee: bigint;
   totalRake: bigint;
@@ -94,7 +110,7 @@ export function calculateQueryRevenue(
 
   let totalRake = 0n;
   const payoutDetails = positivePayouts.map((gross) => {
-    const { rake, netPayout } = calculateNetPayout(gross);
+    const { rake, netPayout } = calculateNetPayout(gross, bondAmount);
     totalRake += rake;
     return { gross, rake, net: netPayout };
   });
