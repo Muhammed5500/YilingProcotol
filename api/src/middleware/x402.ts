@@ -238,9 +238,10 @@ async function initializeMiddleware(payTo: string) {
   // ── Monad Facilitator ─────────────────────────────────────
   if (monadNetworks.length > 0) {
     try {
+      console.log(`[x402] Connecting to Monad facilitator: ${MONAD_FACILITATOR_URL}`);
       const monadFacilitator = withRetry(new HTTPFacilitatorClient({ url: MONAD_FACILITATOR_URL }));
       const supported = await monadFacilitator.getSupported();
-      console.log(`[x402] Monad facilitator connected (${supported.kinds.length} kinds)`);
+      console.log(`[x402] Monad facilitator connected (${supported.kinds.length} kinds)`, JSON.stringify(supported));
 
       const monadServer = new x402ResourceServer(monadFacilitator);
       for (const network of monadNetworks) {
@@ -249,7 +250,7 @@ async function initializeMiddleware(payTo: string) {
       monadMiddleware = paymentMiddleware(monadRouteConfig, monadServer);
       console.log(`[x402] Monad middleware ready`);
     } catch (err: any) {
-      console.warn(`[x402] Monad facilitator failed: ${err.message}`);
+      console.error(`[x402] Monad facilitator FAILED: ${err.message}`, err.stack);
     }
   }
 
@@ -318,7 +319,9 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       const preferredChain = c.req.header("X-PREFERRED-CHAIN") || "";
       if (isMonadNetwork(preferredChain)) {
         useMiddleware = monadMiddleware;
-        fallback = cdpMiddleware;
+        // Do NOT fall back to CDP for Monad — it would return Base Sepolia accepts,
+        // causing chainId mismatch when the wallet is on Monad
+        fallback = null;
       } else {
         useMiddleware = cdpMiddleware;
         fallback = cdpFallbackMiddleware;
@@ -355,7 +358,13 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
       }
     }
 
-    console.warn(`[x402] No facilitator for ${path} — rejecting`);
-    return c.json({ error: "Payment service unavailable" }, 503);
+    const preferredChain2 = c.req.header("X-PREFERRED-CHAIN") || "";
+    console.warn(`[x402] No facilitator for ${path} (preferred: ${preferredChain2}, monadMW: ${!!monadMiddleware}, cdpMW: ${!!cdpMiddleware})`);
+    return c.json({
+      error: "Payment service unavailable",
+      details: isMonadNetwork(preferredChain2)
+        ? "Monad facilitator is not available. Check MONAD_FACILITATOR_URL config."
+        : "No facilitator available for the requested chain.",
+    }, 503);
   };
 }
