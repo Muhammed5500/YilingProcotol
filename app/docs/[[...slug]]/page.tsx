@@ -183,7 +183,7 @@ Payments accepted via x402 on:
 ## API
 
 \`\`\`
-https://yilingprotocol-production-fdba.up.railway.app
+https://api.yilingprotocol.com
 \`\`\`
 
 ## Endpoints

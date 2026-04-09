@@ -7,7 +7,7 @@ import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
-const API_URL = "https://yilingprotocol-production-fdba.up.railway.app";
+const API_URL = "https://api.yilingprotocol.com";
 const PRIVATE_KEY = "0x75796d8d70e01350e9114f68c754b9ec184c99a86b3079eaa41a03477da1f484";
 
 async function main() {
