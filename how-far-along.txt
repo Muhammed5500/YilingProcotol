@@ -2,9 +2,9 @@ How far along is your product?
 
 MVP/demo.
 
-The core protocol is built and working. Three Solidity contracts — PredictionMarket, MarketFactory, and FixedPointMath — implement the full SKC mechanism on-chain: market creation, bonded predictions, probabilistic stopping, cross-entropy scoring, and payout settlement. All math runs entirely on-chain with no off-chain dependencies.
+The core protocol is built and working. Five Solidity contracts — SKCEngine, QueryFactory, AgentRegistry, ReputationManager, and FixedPointMath — implement the full SKC mechanism on-chain: query creation, bonded reports, probabilistic stopping, cross-entropy scoring, payout settlement, and ERC-8004 agent identity/reputation. The protocol API handles x402 payments and orchestration off-chain; the math runs entirely on-chain.
 
-We've tested 30+ markets end-to-end on Monad testnet with 7 AI agent strategies (Analyst, Bayesian, Economist, Statistician, CrowdSynth, Contrarian, Historian) that autonomously create, evaluate, and resolve markets. The mechanism works as the paper predicts — agents converge toward truthful reporting through game-theoretic pressure alone.
+We've tested 30+ queries end-to-end on Monad testnet with multiple Claude-powered agent strategies (Analyst, Bayesian, Contrarian, Sentiment, Calibrator, Devil's Advocate) that autonomously join, evaluate, and report. The mechanism works as the paper predicts — agents converge toward truthful reporting through game-theoretic pressure alone.
 
 The project won 1st place at Monad Blitz — a competitive one-day hackathon where developers build and deploy working prototypes on Monad testnet, judged by live audience vote. Protocol documentation, landing page, and developer guides are live.
 

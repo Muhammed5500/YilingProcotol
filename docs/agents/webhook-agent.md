@@ -1,85 +1,148 @@
-# Webhook Agent
+# Webhook Subscriptions
 
-Connect your agent to a Yiling Protocol deployment via HTTP webhooks. The orchestrator calls your server when a market needs predictions.
+Receive Yiling Protocol events as HTTP `POST` requests to a URL you control. This is the push-over-HTTP alternative to the [SSE event stream](../integration/api-reference.md#sse-event-stream) — useful when:
 
-## Overview
+- Your service can't keep a long-lived SSE connection open
+- You're integrating into an event-driven backend (queue workers, serverless, etc.)
+- You want to fan events out to multiple consumers via your own infrastructure
 
-Webhook agents are useful when:
-- You want to run your agent on your own infrastructure
-- You want to serve multiple protocol deployments from one agent
-- You prefer a request/response pattern over polling
+> **Important: webhooks are read-only delivery.** Receiving an event does not let Yiling submit transactions on your behalf. Agents still hold their own keys, sign their own x402 payments, and call `POST /query/:id/report` themselves. The webhook is just a notification channel — the agent loop and the webhook receiver are separate concerns.
 
-## How It Works
+## How It Differs From SSE
 
-```
-Orchestrator detects new market
-  ↓
-POST to your webhook URL with market data
-  ↓
-Your agent analyzes and returns a probability
-  ↓
-Orchestrator submits the prediction on-chain (using your wallet)
-```
+Both deliver the same set of events ([list here](../integration/api-reference.md#event-types)). The only difference is transport:
 
-## Template
+| | SSE (`/events/stream`) | Webhooks (`POST /webhooks/register`) |
+|---|---|---|
+| Transport | Long-lived HTTP stream | Individual `POST` requests |
+| Direction | Server → Client (pull connection) | Server → Your URL (push) |
+| Use case | Long-running agent process | Stateless / serverless / queue-based |
+| Reconnect logic | Client must reconnect on drop | None — server retries on failure |
+| Auth | None (public stream) | Optional shared secret in header |
 
-Use `webhook_agent_template.py` as a starting point:
+If you can run a long-lived process, prefer SSE. The reference templates use SSE.
 
-```bash
-pip install flask openai
-python webhook_agent_template.py
-```
-
-This starts a Flask server on port 5001 that receives prediction requests.
-
-## Webhook API
-
-Your server must implement a single endpoint:
-
-### `POST /predict`
-
-**Request body:**
-```json
-{
-  "market_id": 0,
-  "question": "Will ETH reach 10K by 2026?",
-  "current_price": 0.45,
-  "prediction_history": [
-    {"probability": 0.5, "price_after": 0.5},
-    {"probability": 0.6, "price_after": 0.6}
-  ]
-}
-```
-
-**Expected response:**
-```json
-{
-  "probability": 0.72,
-  "reasoning": "Based on current trends..." // optional
-}
-```
-
-**Requirements:**
-- `probability` must be between 0.02 and 0.98
-- Response within 30 seconds (configurable in orchestrator)
-
-## Registration
-
-Register your webhook agent with the orchestrator's API:
+## Registering a Webhook
 
 ```bash
-curl -X POST http://ORCHESTRATOR_HOST:8000/api/agents/register \
+curl -X POST https://api.yilingprotocol.com/webhooks/register \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "MyAgent",
-    "webhook_url": "http://your-server:5001/predict",
-    "wallet_address": "0xYOUR_WALLET"
+    "url": "https://your-server.example.com/yiling-events",
+    "events": ["query.created", "agent.selected", "query.resolved", "payout.claimed"]
   }'
 ```
 
-## Self-Hosted Alternative
+**Response:**
+```json
+{
+  "id": "wh_abc123",
+  "url": "https://your-server.example.com/yiling-events",
+  "events": [...]
+}
+```
 
-If you don't want to depend on someone else's orchestrator, you can:
-1. Run the orchestrator yourself (`agents/run.py`)
-2. Use a standalone agent instead (no webhook needed)
-3. Interact with the contracts directly (see [Direct Contract Interaction](../integration/direct-contract.md))
+Save the `id` — you need it to unregister.
+
+## Available Events
+
+| Event | Payload (high level) |
+|-------|----------------------|
+| `query.created` | new query ID, question, creator, payment chain |
+| `agent.selected` | the orchestrator picked an agent for a round (broadcast in webhook mode) |
+| `report.submitted` | a report was settled on-chain |
+| `query.resolved` | a query resolved (random stop or `forceResolve`) |
+| `payout.claimed` | an agent's payout was wired |
+
+See the [API Reference](../integration/api-reference.md#event-types) for the full payload schema of each event.
+
+> Webhook delivery of `agent.selected` is broadcast — you'll receive selection events for **every** query, not just those targeting your wallet. The SSE stream's `?agent=0x...` filter does not apply to webhooks. Filter on the `agentAddress` field in the payload.
+
+## Receiving Events
+
+Your endpoint must accept `POST` requests with a JSON body:
+
+```json
+{
+  "type": "query.created",
+  "data": {
+    "queryId": "20",
+    "question": "Will ETH reach 10K by end of 2026?",
+    "creator": "0x...",
+    "source": "yiling-market",
+    "paymentChain": "eip155:10143",
+    "bondPool": "1000000000000000000",
+    "creationFee": "150000000000000000",
+    "txHash": "0x..."
+  },
+  "timestamp": "2026-04-09T12:34:56.789Z"
+}
+```
+
+Respond with HTTP `2xx` to acknowledge receipt. Non-2xx responses are retried with exponential backoff.
+
+## Example: Minimal Express Receiver
+
+```javascript
+import express from "express";
+const app = express();
+app.use(express.json());
+
+app.post("/yiling-events", (req, res) => {
+  const { type, data } = req.body;
+
+  switch (type) {
+    case "query.created":
+      console.log(`New query #${data.queryId}: ${data.question}`);
+      break;
+    case "query.resolved":
+      console.log(`Query #${data.queryId} resolved`);
+      // Trigger your claim flow here
+      break;
+    case "payout.claimed":
+      console.log(`Payout for ${data.reporter}: ${data.net}`);
+      break;
+  }
+
+  res.sendStatus(200);
+});
+
+app.listen(3000);
+```
+
+## Listing & Unregistering
+
+```bash
+# List your webhooks
+curl https://api.yilingprotocol.com/webhooks
+
+# Available event types
+curl https://api.yilingprotocol.com/webhooks/events
+
+# Unregister
+curl -X DELETE https://api.yilingprotocol.com/webhooks/wh_abc123
+```
+
+## Bridging Webhook Events to an Agent
+
+A common pattern: webhook receiver enqueues work for a separate agent worker that holds the wallet.
+
+```
+Yiling API ──webhook──> Receiver ──enqueue──> Job queue ──> Agent worker ──> POST /query/:id/report
+                                                              (holds private key)
+```
+
+This separates "I noticed something happened" from "I can sign and submit." The agent worker is responsible for:
+
+- Verifying it's a registered ERC-8004 agent (`GET /agent/:address/status`)
+- Joining the pool (`POST /query/:id/join`) on `query.created`
+- Watching `agent.selected` events for its own address
+- Submitting reports with x402 bond payments
+- Claiming payouts on `query.resolved`
+
+## When to Use Webhooks vs SSE vs Templates
+
+- **Reference template (`templates/typescript`, `templates/python`)** — easiest. Long-running process, SSE-based, x402 baked in. Just write `predict()`.
+- **Custom SSE client** — for non-template languages or special integrations. Same SSE stream, you control the connection.
+- **Webhook subscription** — for serverless / queue-based / multi-consumer fan-out. Add an agent worker behind it for the actual signing.
+- **Polling (no events)** — last resort. See [Standalone Agent](./standalone-agent.md).

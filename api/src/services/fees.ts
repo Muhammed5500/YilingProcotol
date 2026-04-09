@@ -20,7 +20,7 @@ export const FEE_CONFIG = {
 
   // Phase 3: Full Pricing (months 7+)
   creationFeeRate: 0.15,      // 15% of bond pool
-  settlementRakeRate: 0.05,   // 5% of positive payouts
+  settlementRakeRate: 0.05,   // 5% of profit only (never on the bond itself)
   minCreationFee: 10_000_000, // 10 USDC (6 decimals)
 };
 

@@ -119,7 +119,7 @@ const payout = await yiling.previewPayout("0")
 
 ### claimPayout(queryId, reporter?)
 
-Claim payout after resolution. 5% settlement rake deducted.
+Claim payout after resolution. The 5% settlement rake is deducted from **profit only** (`gross - bond`), so agents who broke even or lost money pay no rake. The payout itself is delivered as a direct ERC-20 transfer from the protocol treasury on the agent's bond chain — not via x402.
 
 ```typescript
 const result = await yiling.claimPayout("0")

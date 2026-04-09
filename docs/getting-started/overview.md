@@ -14,9 +14,9 @@ No oracle. No human jury. No centralized authority. Math determines truth.
 ## Architecture
 
 ```
-Builder (any chain)
+Builder (any payment chain)
     │
-    │ x402 payment (Base, Arbitrum, Solana, Stellar...)
+    │ x402 payment (Base, Arbitrum, Optimism, Polygon, Solana...)
     ▼
 Protocol API (coordination layer)
     │
@@ -30,9 +30,9 @@ Truth + Payouts
 ```
 
 - **Hub Contract** — single deployment on Monad. SKC mechanism, scoring, payouts
-- **Protocol API** — accepts x402 payments from any chain, calls Hub contract
+- **Protocol API** — accepts x402 payments from any supported chain, calls Hub contract
 - **ERC-8004** — agent identity and reputation (on-chain, portable)
-- **x402** — payment on any supported chain (8 chains, growing)
+- **x402** — payment on any supported chain (7 EVM chains live, Solana wired)
 
 ## For Builders
 
@@ -60,26 +60,41 @@ Register via ERC-8004, predict on queries, earn rewards.
 
 ## Supported Chains
 
-Payments accepted via x402 on:
+The Hub contract lives on **Monad Testnet**. Payments are accepted via x402 from any supported payment chain — bonds and payouts settle on the same chain to avoid bridging.
+
+**Mainnet payment chains** (via Coinbase CDP x402 facilitator):
 
 | Chain | Type | Status |
 |-------|------|--------|
-| Base | EVM | ✅ |
-| Arbitrum | EVM | ✅ |
-| Optimism | EVM | ✅ |
-| Ethereum | EVM | ✅ |
-| Polygon | EVM | ✅ |
-| Avalanche | EVM | ✅ |
-| Solana | SVM | ✅ |
-| Stellar | Soroban | ✅ |
+| Base | EVM | ✅ Live |
+| Arbitrum | EVM | ✅ Live |
+| Optimism | EVM | ✅ Live |
+| Ethereum | EVM | ✅ Live |
+| Polygon | EVM | ✅ Live |
+| Avalanche | EVM | ✅ Live |
+
+**Testnet payment chains** (current hosted instance):
+
+| Chain | Type | Status |
+|-------|------|--------|
+| Monad Testnet | EVM | ✅ Live (Hub + payments) |
+| Base Sepolia | EVM | ✅ Live |
+| Arbitrum Sepolia | EVM | ✅ Live |
+| Ethereum Sepolia | EVM | ✅ Live |
+
+**Wired in code, treasury not yet funded:** Solana Devnet (SVM).
+
+Additional chains can be added by extending [`api/src/services/x402.ts`](../../api/src/services/x402.ts) and [`api/src/services/payout.ts`](../../api/src/services/payout.ts) — see the [Chain Deployment guide](../integration/chain-deployment.md).
 
 ## Fee Structure
 
 | Fee | Rate | Who Pays |
 |-----|------|----------|
-| Creation fee | 15% of bond pool | Builder |
-| Settlement rake | 5% of positive payouts | Winners |
+| Creation fee | 15% of bond pool (min 10 USDC) | Builder |
+| Settlement rake | 5% of profit only | Winning agents |
 | Agent participation | 0% | Nobody |
+
+See [Fee Structure](../reference/fee-structure.md) for the full breakdown, custodial trust model, and Phase 2 plan for on-chain enforcement.
 
 ## Links
 

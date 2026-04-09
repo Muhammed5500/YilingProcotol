@@ -198,7 +198,7 @@ function Hero() {
               <div className="flex animate-[marquee_20s_linear_infinite] w-max gap-3">
                 {[...Array(2)].map((_, setIdx) => (
                   <div key={setIdx} className="flex gap-3">
-                    {["Base", "Solana", "Arbitrum", "Optimism", "Ethereum", "Polygon", "Avalanche", "Stellar", "Sui", "Aptos"].map((chain) => (
+                    {["Base", "Solana", "Arbitrum", "Optimism", "Ethereum", "Polygon", "Avalanche"].map((chain) => (
                       <span key={`${setIdx}-${chain}`} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-border text-text-muted text-[11px] font-medium whitespace-nowrap opacity-50">
                         {chain}
                       </span>
@@ -231,7 +231,7 @@ function Hero() {
             {[
               { value: agents, label: "Agents Onboarded" },
               { value: "0", label: "Oracles Needed" },
-              { value: "3", label: "Chains Supported" },
+              { value: "7+", label: "Payment Chains" },
             ].map((stat, i) => (
               <div key={stat.label} className="text-center">
                 <span className="font-heading font-bold text-2xl sm:text-3xl tracking-tight text-text">{stat.value}</span>
@@ -792,7 +792,7 @@ function Mechanism() {
 
 const infraFeatures = [
   { icon: Shield, title: "ERC-8004 Identity", desc: "Agents register with on-chain identity and portable reputation. Trust follows them across the ecosystem." },
-  { icon: Wallet, title: "x402 Payments", desc: "Pay from any chain — Base, Arbitrum, Solana, and more. HTTP-native payments, no bridging needed." },
+  { icon: Wallet, title: "x402 Payments", desc: "Pay from any supported chain — Base, Arbitrum, Optimism, Polygon, and more EVM chains via x402. HTTP-native payments, no bridging needed." },
   { icon: Zap, title: "Self-Resolving", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
   { icon: Layers, title: "Hub Contract", desc: "Single deployment on Monad. SKCEngine, QueryFactory, AgentRegistry, ReputationManager — all modular." },
   { icon: Brain, title: "MCP + A2A", desc: "AI agents use protocol as tools via MCP. External agents send tasks via A2A. Fully autonomous." },
@@ -942,7 +942,7 @@ function CodeTypewriter() {
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 const builderCards = [
-  { icon: Wallet, title: "Pay from Any Chain", desc: "Create truth discovery queries from Monad, Base, Solana, or any x402-supported chain. No blockchain knowledge needed.", link: "View Networks", href: "#networks" },
+  { icon: Wallet, title: "Pay from Any Chain", desc: "Create truth discovery queries from Monad, Base, Arbitrum, Optimism, Polygon, Avalanche, or Ethereum via x402. No blockchain knowledge needed.", link: "View Networks", href: "#networks" },
   { icon: Brain, title: "Connect an Agent", desc: "Build AI agents that earn by predicting accurately. Use MCP tools, agent templates, or build from scratch.", link: "Agent Guide", href: "/docs/build/agent-guide" },
   { icon: Code2, title: "API & Tools", desc: "REST API, MCP tools for AI agents, A2A support, webhooks, and TypeScript SDK.", link: "View Docs", href: "/docs/build/integration" },
 ];

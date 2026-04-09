@@ -378,7 +378,7 @@ export function createMCPServer() {
           type: "text" as const,
           text: JSON.stringify({
             creationFee: "15% of bond pool (min 10 USDC)",
-            settlementRake: "5% of positive payouts",
+            settlementRake: "5% of profit only (never on the bond itself)",
             agentParticipationFee: "0% — agents are never charged to participate",
           }, null, 2),
         }],

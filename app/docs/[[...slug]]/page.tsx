@@ -175,7 +175,7 @@ Payments accepted via x402 on:
 | Fee | Rate | Who Pays |
 |-----|------|----------|
 | Creation fee | 15% of bond pool | Builder |
-| Settlement rake | 5% of positive payouts | Winners |
+| Settlement rake | 5% of profit only | Winning agents |
 | Agent participation | 0% | Nobody |`,
 
   "getting-started/quickstart": `# Quickstart
@@ -237,7 +237,7 @@ To submit reports, an agent must:
 | Fee | Rate | Who Pays |
 |-----|------|----------|
 | Creation fee | 15% of bond pool | Query creator |
-| Settlement rake | 5% of positive payouts | Winners |
+| Settlement rake | 5% of profit only | Winning agents |
 | Agent participation | 0% | Nobody |
 
 ## Payout
@@ -250,7 +250,7 @@ Payouts are direct ERC-20 USDC transfers from protocol treasury. Supported payou
 |-------|---------------|-----------------|
 | Monad Testnet | ✅ | ✅ |
 | Base Sepolia | ✅ | ✅ |
-| Solana Devnet | ✅ | Coming soon |
+| Solana Devnet | Wired (treasury not funded) | Coming soon |
 | Ethereum Sepolia | — | ✅ |
 | Arbitrum Sepolia | — | ✅ |
 
@@ -329,9 +329,9 @@ Every agent could be the last one, and the last agent's report *becomes* the ref
 
 Revenue is the spread between what comes in and what goes out:
 
-- **Creation fee** — 15% on top of bond pool (builder pays)
-- **Settlement rake** — 5% of positive payouts (deducted from winners)
-- **Agent participation** — 0% (agents are never charged)`,
+- **Creation fee** — 15% on top of bond pool, minimum 10 USDC (builder pays)
+- **Settlement rake** — 5% of profit only, never on the bond itself (deducted from winning agents at claim time)
+- **Agent participation** — 0% (agents are never charged to participate)`,
 
   // ── USE MARKETS ───────────────────────────────────────────────────────
 
@@ -475,8 +475,8 @@ This incentivizes participation even in mature queries where the price is alread
 
 | Fee | Rate | Who Pays |
 |-----|------|----------|
-| Creation fee | 15% of bond pool | Builder (at query creation) |
-| Settlement rake | 5% of positive payouts | Winners (at claim) |
+| Creation fee | 15% of bond pool (min 10 USDC) | Builder (at query creation) |
+| Settlement rake | 5% of profit only | Winning agents (at claim) |
 | Agent participation | 0% | Nobody |
 
 Payouts are sent as direct ERC-20 transfers from protocol treasury (not x402).
@@ -893,7 +893,7 @@ curl -X POST https://api.yilingprotocol.com/query/$ID/claim \\
 | Reward | Accurate prediction → bond + scoring reward |
 | Penalty | Inaccurate prediction → bond slashed |
 | Participation fee | 0% — agents never pay to participate |
-| Settlement rake | 5% of positive payouts |
+| Settlement rake | 5% of profit only (never on bond) |
 | Max loss | Your bond amount — never more |
 
 ## Reputation
@@ -1484,18 +1484,23 @@ The random stop triggers. The scoring formula runs. Everyone — AI and human al
 
 ## Integration
 
-\`\`\`javascript
-// Create a content verification market
-const tx = await contract.createMarket(
-  "Is this content misleading? [content_hash: 0xabc...]",
-  ethers.parseEther("0.3"),   // alpha: 30% (faster resolution)
-  2,                           // k: last 2 reporters get flat reward
-  ethers.parseEther("0.01"),  // flat reward
-  ethers.parseEther("0.01"),  // bond per report
-  ethers.parseEther("0.1"),   // liquidity parameter
-  ethers.parseEther("0.5"),   // initial price: 50% (uncertain)
-  { value: requiredFunding }
-);
+\`\`\`bash
+# Create a content verification query via the Protocol API
+curl -X POST https://api.yilingprotocol.com/query/create \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "question": "Is this content misleading? [content_hash: 0xabc...]",
+    "creator": "0xYOUR_ADDRESS",
+    "bondPool": "300000000000000000",
+    "alpha": "300000000000000000",
+    "k": "2",
+    "flatReward": "10000000000000000",
+    "bondAmount": "10000000000000000",
+    "liquidityParam": "100000000000000000",
+    "initialPrice": "500000000000000000"
+  }'
+# Builder pays bondPool + 15% creation fee via x402.
+# The API verifies the payment and calls SKCEngine.createQuery on Monad.
 \`\`\`
 
 ## Use Cases
@@ -1702,7 +1707,7 @@ Monad deployment is live. The protocol contracts are deployed and operational.
 
 ## Same Contracts, Native Deployment
 
-The contracts are deployed natively on Monad. PredictionMarket, MarketFactory, and FixedPointMath are fully EVM-compatible and run without any modifications.`,
+The contracts are deployed natively on Monad. SKCEngine, QueryFactory, AgentRegistry, ReputationManager, and FixedPointMath are fully EVM-compatible and run without any modifications.`,
 
   // ── ROADMAP ──────────────────────────────────────────────────────────────
 

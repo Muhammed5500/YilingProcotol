@@ -660,7 +660,7 @@ query.get("/pricing", async (c) => {
     },
     settlementRake: {
       rate: "5%",
-      description: "Deducted from positive payouts at claim time.",
+      description: "Deducted from profit only (gross - bond) at claim time. No rake on bond return or losses.",
       example: {
         grossPayout: "80 USDC",
         rake: "4 USDC",

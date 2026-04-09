@@ -1,98 +1,78 @@
 # Chain-Agnostic Deployment
 
-Yiling Protocol is chain-agnostic. The smart contracts are standard Solidity 0.8.24 with no chain-specific dependencies — deploy on any EVM-compatible chain.
+Yiling has two distinct chain dimensions, and they are not the same thing:
 
-## Deployment Checklist
+1. **Hub chain** — where `SKCEngine`, `QueryFactory`, `AgentRegistry`, and `ReputationManager` actually live. There is **one** Hub for any given Yiling deployment. The hosted protocol uses Monad Testnet (`eip155:10143`).
+2. **Payment chains** — chains from which builders and agents can post their x402 payments. The Protocol API accepts payments from any chain its facilitator supports, and the bond/fee USDC is settled on that chain.
 
-1. **Choose your chain** — any EVM chain works
-2. **Fund a deployer wallet** on that chain
-3. **Deploy the contracts** using Foundry
-4. **Configure parameters** (treasury, fee, market defaults)
-5. **Point your agents** to the new contract address and RPC
+Most operators only need to think about #2 — choose which payment chains to enable on the Protocol API. You only need to follow #1 if you're spinning up an entirely separate Yiling instance.
 
-## Step-by-Step
+## Adding a New Payment Chain
 
-### 1. Configure Chain
+Payment chains are configured in two places in the API:
 
-Create or edit your Foundry config:
+### 1. `api/src/services/x402.ts`
 
-```bash
-cd contracts
+Register the chain with the x402 facilitator router. Pick the right facilitator (Coinbase CDP for mainnet EVM, Monad facilitator for Monad, or the public x402 facilitator as fallback).
 
-# Add your chain's RPC to foundry.toml (optional)
-# Or just pass --rpc-url directly
+```typescript
+const SUPPORTED_CHAINS: Record<string, ChainConfig> = {
+  // ...existing chains
+  "eip155:421614": {
+    name: "Arbitrum Sepolia",
+    rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
+    usdcAddress: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    facilitator: "cdp",  // or "monad" or "public"
+  },
+};
 ```
 
-### 2. Deploy
+### 2. `api/src/services/payout.ts`
 
-```bash
-forge script script/Deploy.s.sol \
-  --rpc-url YOUR_CHAIN_RPC \
-  --broadcast \
-  --private-key $PRIVATE_KEY
+Add the chain to `TREASURY_CHAINS` so the API knows how to wire payouts back to agents on that chain:
+
+```typescript
+const TREASURY_CHAINS: Record<string, ChainTreasury> = {
+  // ...existing chains
+  "eip155:421614": {
+    rpcUrl: "https://sepolia-rollup.arbitrum.io/rpc",
+    usdcAddress: "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+    chainName: "Arbitrum Sepolia",
+  },
+};
 ```
 
-### 3. Verify (Optional)
+The treasury wallet (controlled by `TREASURY_PRIVATE_KEY`) must hold enough USDC on that chain to cover expected payouts.
 
-```bash
-forge verify-contract $CONTRACT_ADDRESS \
-  src/PredictionMarket.sol:PredictionMarket \
-  --rpc-url YOUR_CHAIN_RPC \
-  --constructor-args $(cast abi-encode "constructor(address,uint256)" $TREASURY 200)
+### 3. Restart the API
+
+Once both maps are updated and the treasury is funded, restart the API. New queries can now be paid for from the added chain, and agents can post bonds from it.
+
+## Cross-Chain Bond Enforcement
+
+The protocol enforces that an agent's bond chain matches the query's chain. When a builder creates a query and pays from `eip155:84532` (Base Sepolia), `SKCEngine.createQuery` records `queryChain = "eip155:84532"` and every subsequent `submitReport` must arrive with `sourceChain == "eip155:84532"`. The check lives in `SKCEngine.sol`:
+
+```solidity
+if (keccak256(bytes(sourceChain)) != keccak256(bytes(q.queryChain))) revert ChainMismatch();
 ```
 
-### 4. Create First Market
+This guarantees that all bonds for a given query sit in one chain's treasury, so payouts can be settled atomically without any cross-chain bridging.
 
-```bash
-cast send $CONTRACT \
-  "createMarket(string,uint256,uint256,uint256,uint256,uint256,uint256)" \
-  "Test market question" \
-  200000000000000000 2 10000000000000000 100000000000000000 1000000000000000000 500000000000000000 \
-  --value 0.7ether \
-  --rpc-url YOUR_CHAIN_RPC \
-  --private-key $PRIVATE_KEY
-```
+## Deploying a Separate Hub Instance
 
-### 5. Connect Agents
+If you want a fully isolated Yiling — your own contracts, your own treasury, your own protocol API — follow the [Contract Deployment guide](../contracts/deployment.md). You'll deploy the four contracts on your chosen chain, point a new Protocol API at them, and configure your own payment chain set.
 
-Update agent config to point to your chain:
-
-```bash
-# Standalone agent
-python standalone_agent.py \
-  --contract $CONTRACT \
-  --rpc YOUR_CHAIN_RPC \
-  --key $AGENT_KEY \
-  --provider openai --llm-key sk-...
-
-# Or set environment variables
-export CONTRACT_ADDRESS=$CONTRACT
-export RPC_URL=YOUR_CHAIN_RPC
-python run.py
-```
-
-## Multi-Chain Deployment
-
-You can deploy independent instances on multiple chains simultaneously. Each deployment is fully isolated:
-
-```
-Chain A: Contract 0xAAA... → Agents → Markets
-Chain B: Contract 0xBBB... → Agents → Markets
-Chain C: Contract 0xCCC... → Agents → Markets
-```
-
-No cross-chain dependencies. Each instance has its own:
-- Contract state
-- Treasury
-- Protocol fee configuration
-- Agent ecosystem
+Multiple isolated Hubs do not share state. They are independent protocol deployments that happen to implement the same SKC mechanism.
 
 ## Non-EVM Chains
 
-For non-EVM chains (Solana, Sui, Aptos, etc.), the Solidity contracts need to be ported to the target chain's smart contract language (Rust/Move/etc.). The core logic — SKC mechanism, cross-entropy scoring, random stop — is math-based and portable.
+For non-EVM chains (Solana, Sui, Aptos, etc.), the Solidity contracts need to be ported to the target chain's smart contract language. The core logic — SKC mechanism, cross-entropy scoring, random stop — is math-based and portable.
 
-Porting guide:
-1. Implement `FixedPointMath` (ln() with fixed-point precision)
-2. Implement the market state machine (create → predict → resolve → claim)
+Porting checklist:
+1. Implement `FixedPointMath` (`ln()` with fixed-point precision)
+2. Implement the query state machine (create → report → resolve → claim)
 3. Implement the scoring formula: `S(q, p) = q × ln(p) + (1-q) × ln(1-p)`
 4. Implement random stop using block hash or equivalent randomness source
+5. Implement an analog of `AgentRegistry`/`ReputationManager` if your chain has an identity standard
+
+A non-EVM Hub can still be reached by EVM payment chains via x402 — only the Hub itself needs to live on the target chain.

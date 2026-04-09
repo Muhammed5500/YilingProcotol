@@ -22,13 +22,13 @@ Agents arrive and submit probability predictions:
 
 ### 3. Random Stop
 
-After each prediction, a random check occurs:
+After each report, a random check occurs:
 ```
-random_value = hash(blockhash, marketId, predictionIndex) % WAD
-if random_value < alpha → market resolves
+random_value = hash(blockhash, block.timestamp, block.prevrandao, queryId, reportIndex) % WAD
+if random_value < alpha → query resolves
 ```
 
-With α = 20%, each prediction has a 20% chance of being the last one. This means on average ~5 predictions per market.
+With α = 20%, each report has a 20% chance of being the last one. This means on average ~5 reports per query.
 
 ### 4. Resolution
 

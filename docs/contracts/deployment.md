@@ -1,12 +1,19 @@
 # Contract Deployment
 
-Deploy Yiling Protocol smart contracts on any EVM-compatible chain.
+Deploy your own Yiling Protocol instance on any EVM-compatible chain. The protocol consists of four contracts that need to be deployed in dependency order.
+
+> **Most users don't need this.** The hosted instance at `api.yilingprotocol.com` is already deployed on Monad Testnet — you only need this guide if you want to run an isolated instance.
 
 ## Prerequisites
 
 - [Foundry](https://getfoundry.sh/) installed
-- A funded wallet on your target chain
-- RPC URL for your target chain
+- A funded deployer wallet on your target chain
+- Two address you control (besides the deployer):
+  - **Protocol API address** — the wallet your backend will sign with (this is the only address allowed to call core write functions on `SKCEngine`)
+  - **Treasury address** — where the API will hold collected fees and pay out resolved queries
+- An ERC-8004 Identity Registry and Reputation Registry deployed on the target chain. On Monad Testnet these are at:
+  - Identity: `0x8004A818BFB912233c491871b3d84c89A494BD9e`
+  - Reputation: `0x8004B663056A597Dffe9eCcC1965A193B7388713`
 
 ## Build
 
@@ -18,79 +25,107 @@ forge build
 
 ## Deploy
 
+The deploy script (`script/Deploy.s.sol`) deploys all four contracts and wires them together:
+
 ```bash
+PRIVATE_KEY=0xYOUR_DEPLOYER_KEY \
 forge script script/Deploy.s.sol \
   --rpc-url YOUR_RPC_URL \
-  --broadcast \
-  --private-key $PRIVATE_KEY
+  --broadcast
 ```
 
-The deployment script deploys `PredictionMarket.sol` with:
-- **Treasury address**: your deployer wallet (can be changed later)
-- **Protocol fee**: 200 bps (2%)
+It performs these steps:
 
-## Custom Deployment
+1. Deploy `AgentRegistry(identityRegistry)`
+2. Deploy `ReputationManager(reputationRegistry)`
+3. Deploy `SKCEngine(agentRegistry, reputationManager, protocolAPI)`
+4. Deploy `QueryFactory(skcEngine, protocolAPI)`
+5. Call `ReputationManager.authorizeCaller(skcEngine)` so the engine can write SKC scores
 
-To customize treasury and fee, edit `script/Deploy.s.sol`:
+The script logs all four addresses at the end. Save them — your Protocol API needs them.
+
+## Customizing the Deploy Script
+
+Open `script/Deploy.s.sol` and edit the constants for your environment:
 
 ```solidity
-contract Deploy is Script {
-    function run() external {
-        vm.startBroadcast();
+// ERC-8004 registries on your chain
+address constant ERC8004_IDENTITY   = 0x...;
+address constant ERC8004_REPUTATION = 0x...;
 
-        PredictionMarket market = new PredictionMarket(
-            TREASURY_ADDRESS,  // where protocol fees go
-            200                // 2% fee (in basis points, max 1000 = 10%)
-        );
-
-        vm.stopBroadcast();
-    }
-}
+// Roles — your protocol API and treasury wallets
+address constant PROTOCOL_API = 0x...;
+address constant TREASURY     = 0x...;
 ```
 
-## Chain-Specific Notes
+## API Gating
 
-The contracts are standard Solidity 0.8.24 with no chain-specific dependencies. They work on any EVM-compatible chain:
+`SKCEngine` ships with `apiGated = true` by default. The only address that can call `createQuery`, `submitReport`, `recordPayoutClaim`, and `forceResolve` is whatever you passed as `protocolAPI` in the constructor. To rotate it later:
 
-| Chain | RPC URL | Notes |
-|-------|---------|-------|
-| Monad | `https://testnet-rpc.monad.xyz` | Primary deployment chain |
-| Ethereum | `https://eth.llamarpc.com` | Higher gas costs |
-| Arbitrum | `https://arb1.arbitrum.io/rpc` | Low gas |
-| Polygon | `https://polygon-rpc.com` | Low gas |
-| Optimism | `https://mainnet.optimism.io` | Low gas |
+```bash
+cast send $SKC_ENGINE \
+  "setProtocolAPI(address)" $NEW_API \
+  --rpc-url $RPC --private-key $OWNER_KEY
+```
 
-For non-EVM chains (Solana, Sui, etc.), the contracts need to be ported to the target chain's smart contract language.
+To open the engine to anyone (development only):
+
+```bash
+cast send $SKC_ENGINE \
+  "setAPIGated(bool)" false \
+  --rpc-url $RPC --private-key $OWNER_KEY
+```
 
 ## Verify Contracts
 
 ```bash
-forge verify-contract $CONTRACT_ADDRESS \
-  src/PredictionMarket.sol:PredictionMarket \
-  --rpc-url YOUR_RPC_URL \
-  --constructor-args $(cast abi-encode "constructor(address,uint256)" $TREASURY 200)
+forge verify-contract $SKC_ENGINE \
+  src/SKCEngine.sol:SKCEngine \
+  --rpc-url $RPC \
+  --constructor-args $(cast abi-encode "constructor(address,address,address)" \
+    $AGENT_REGISTRY $REPUTATION_MANAGER $PROTOCOL_API)
 ```
+
+Repeat for `QueryFactory`, `AgentRegistry`, and `ReputationManager` with their own constructor args.
+
+## Chain-Specific Notes
+
+The contracts are standard Solidity 0.8.24 with no chain-specific dependencies. They work on any EVM-compatible chain. You'll need an ERC-8004 Identity and Reputation Registry deployed on the same chain — if neither exists, you can deploy the reference implementations from [erc8004.org](https://erc8004.org) first.
+
+| Chain | RPC URL | Notes |
+|-------|---------|-------|
+| Monad Testnet | `https://testnet-rpc.monad.xyz` | Primary deployment |
+| Base Sepolia | `https://sepolia.base.org` | Testnet payment chain |
+| Arbitrum Sepolia | `https://sepolia-rollup.arbitrum.io/rpc` | Testnet payment chain |
+| Ethereum Sepolia | `https://ethereum-sepolia-rpc.publicnode.com` | Testnet payment chain |
+
+For non-EVM chains the contracts need to be ported (the SKC math itself is portable — see the FixedPointMath docs).
 
 ## Post-Deployment
 
-After deployment, you can configure the protocol:
-
 ```bash
-# Update treasury address
-cast send $CONTRACT "setTreasury(address)" NEW_TREASURY --private-key $KEY --rpc-url $RPC
+# Rotate ownership
+cast send $SKC_ENGINE "transferOwnership(address)" $NEW_OWNER --private-key $OWNER_KEY --rpc-url $RPC
 
-# Update protocol fee (basis points, max 1000)
-cast send $CONTRACT "setProtocolFee(uint256)" 300 --private-key $KEY --rpc-url $RPC
+# Repoint AgentRegistry / ReputationManager
+cast send $SKC_ENGINE "setAgentRegistry(address)"     $NEW_AGENT_REGISTRY --private-key $OWNER_KEY --rpc-url $RPC
+cast send $SKC_ENGINE "setReputationManager(address)" $NEW_REPUTATION_MANAGER --private-key $OWNER_KEY --rpc-url $RPC
 
-# Transfer ownership
-cast send $CONTRACT "transferOwnership(address)" NEW_OWNER --private-key $KEY --rpc-url $RPC
+# Update QueryFactory binding
+cast send $QUERY_FACTORY "setSKCEngine(address)" $NEW_SKC_ENGINE --private-key $OWNER_KEY --rpc-url $RPC
 ```
 
-## Gas Estimates
+## Wiring the Protocol API
 
-| Function | Approximate Gas |
-|----------|----------------|
-| `createMarket()` | ~250,000 |
-| `predict()` | ~150,000 - 500,000 (depends on resolution) |
-| `claimPayout()` | ~80,000 |
-| `forceResolve()` | ~300,000 |
+Once deployed, configure your Protocol API's `.env`:
+
+```env
+SKC_ENGINE_ADDRESS=0x...
+QUERY_FACTORY_ADDRESS=0x...
+AGENT_REGISTRY_ADDRESS=0x...
+REPUTATION_MANAGER_ADDRESS=0x...
+TREASURY_ADDRESS=0x...
+PRIVATE_KEY=0x...   # must match the protocolAPI address you deployed with
+```
+
+The API process is the only thing that should hold the `protocolAPI` private key.
