@@ -1,9 +1,0 @@
-What problem are you solving, and why does it matter?
-
-Every system that determines truth today — oracles, prediction markets, moderation, governance — assumes someone can eventually verify the answer. For the hardest and fastest-growing category of questions, that assumption breaks. Fake news, subjective disputes, AI disagreements, and long-horizon forecasts have no verifiable ground truth. No data feed to check. No authority to ask. If the outcome is unverifiable, existing infrastructure simply cannot resolve it.
-
-This is not a niche gap. It is the default state of most important questions. And the consequence is that truth either gets decided by centralized power or doesn't get decided at all.
-
-The root cause is architectural: truth infrastructure was built on verification. We remove that requirement entirely. The SKC mechanism — peer-reviewed Harvard research, ACM EC 2025 — uses game theory to make honest reporting the mathematically dominant strategy, even when the outcome can never be checked.
-
-The internet has infrastructure for payments, identity, and data. It has no infrastructure for truth. We're building it.
