@@ -8,21 +8,22 @@ import {SKCEngine} from "../src/SKCEngine.sol";
 import {QueryFactory} from "../src/QueryFactory.sol";
 
 contract DeployScript is Script {
-    // ERC-8004 on Monad Testnet
+    // ERC-8004 on Monad Testnet (public infrastructure addresses)
     address constant ERC8004_IDENTITY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
     address constant ERC8004_REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
-
-    // Role addresses — each role has its own wallet
-    address constant PROTOCOL_API = 0x68C749cE3B87D1C41164a92DdED086331e0B78a1;
-    address constant TREASURY     = 0x0C952bA7Ce073b05c62F49a0a52304057997B351;
 
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
+        // Role addresses are loaded from env so they never get committed.
+        // Each role should be its own wallet (separate from the deployer).
+        address protocolApi = vm.envAddress("PROTOCOL_API_ADDRESS");
+        address treasury    = vm.envAddress("TREASURY_ADDRESS");
+
         console.log("Deployer (Owner):", deployer);
-        console.log("ProtocolAPI:", PROTOCOL_API);
-        console.log("Treasury:", TREASURY);
+        console.log("ProtocolAPI:", protocolApi);
+        console.log("Treasury:", treasury);
         console.log("ERC-8004 Identity:", ERC8004_IDENTITY);
         console.log("ERC-8004 Reputation:", ERC8004_REPUTATION);
 
@@ -40,14 +41,14 @@ contract DeployScript is Script {
         SKCEngine skcEngine = new SKCEngine(
             address(agentRegistry),
             address(reputationManager),
-            PROTOCOL_API
+            protocolApi
         );
         console.log("SKCEngine:", address(skcEngine));
 
         // 4. Deploy QueryFactory — protocolAPI is separate from owner
         QueryFactory queryFactory = new QueryFactory(
             address(skcEngine),
-            PROTOCOL_API
+            protocolApi
         );
         console.log("QueryFactory:", address(queryFactory));
 
@@ -61,8 +62,8 @@ contract DeployScript is Script {
         console.log("");
         console.log("=== DEPLOYMENT SUMMARY ===");
         console.log("OWNER=", deployer);
-        console.log("PROTOCOL_API=", PROTOCOL_API);
-        console.log("TREASURY=", TREASURY);
+        console.log("PROTOCOL_API=", protocolApi);
+        console.log("TREASURY=", treasury);
         console.log("SKC_ENGINE_ADDRESS=", address(skcEngine));
         console.log("QUERY_FACTORY_ADDRESS=", address(queryFactory));
         console.log("AGENT_REGISTRY_ADDRESS=", address(agentRegistry));
