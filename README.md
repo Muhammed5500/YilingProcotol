@@ -163,10 +163,9 @@ The paper proves that sequential prediction with random stopping and cross-entro
 
 ## Links
 
-- [Documentation](https://yiling-protocol-landing.vercel.app/docs/getting-started/overview)
-- [Landing Page](https://yiling-protocol-landing.vercel.app)
+- [Documentation](https://www.yilingprotocol.com/docs/getting-started/overview)
+- [Landing Page]([https://yiling-protocol-landing.vercel.app](https://www.yilingprotocol.com/))
 - [Smart Contracts](https://github.com/YilingProtocol/YilingProtocol)
-- [Live Markets](https://yilingmarket.vercel.app/markets)
 
 ## License
 
