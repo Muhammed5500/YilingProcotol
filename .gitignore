@@ -1,5 +1,66 @@
-node_modules
-.next
+# ─── Dependencies ─────────────────────────────
+node_modules/
+
+# ─── Environment variables ────────────────────
+# Never commit real secrets; keep .env.example as the template
 .env
-.env.local
+.env.*
+!.env.example
+
+# ─── OS-generated files ───────────────────────
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDE / editor ─────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Logs ─────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Next.js (landing + docs site) ────────────
+.next/
+/out/
+.vercel/
+.turbo/
+*.tsbuildinfo
+
+# ─── Foundry (contracts/) ─────────────────────
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# ─── API server (api/) ────────────────────────
+# SQLite database and journals — runtime state
+api/*.db
+api/*.db-journal
+api/*.db-wal
+api/*.db-shm
+
+# ─── Python (templates/python/) ───────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+venv/
+.venv/
+.pytest_cache/
+pip-log.txt
+
+# ─── Test coverage ────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Misc ─────────────────────────────────────
+*.tgz
+.cache/
+.env.backup
