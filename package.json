@@ -1,17 +1,28 @@
 {
-  "name": "landing-test",
+  "name": "yiling-protocol-web",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "Yiling Protocol — Oracle-free truth discovery infrastructure. Landing page and documentation site.",
+  "license": "AGPL-3.0",
+  "author": "Yiling Protocol Team",
+  "homepage": "https://www.yilingprotocol.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YilingProtocol/YilingProtocol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YilingProtocol/YilingProtocol/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
-  "license": "AGPL-3.0",
-  "type": "module",
   "dependencies": {
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
