@@ -21,7 +21,6 @@ Core protocol contract implementing the SKC mechanism for oracle-free, self-reso
 | `WAD` | `1e18` | Fixed-point precision unit |
 | `MIN_PROBABILITY` | `0.01e18` | Minimum prediction (1%) |
 | `MAX_PROBABILITY` | `0.99e18` | Maximum prediction (99%) |
-| `FORCE_RESOLVE_DELAY` | `2 days` | Delay before anyone can force-resolve |
 | `LN2_WAD` | `693147180559945309` | ln(2) in WAD format (in `FixedPointMath`) |
 
 ## Core Write Functions (API-gated)
@@ -88,13 +87,11 @@ function recordPayoutClaim(uint256 queryId, address reporter) external onlyProto
 
 ### `forceResolve`
 
-Force-resolve a query that hasn't stopped randomly.
+Force-resolve a query that hasn't stopped randomly. Used by the orchestrator when the agent pool is exhausted.
 
 ```solidity
-function forceResolve(uint256 queryId) external
+function forceResolve(uint256 queryId) external onlyProtocolAPI
 ```
-
-**Access:** Owner can force-resolve anytime. Anyone can force-resolve after `FORCE_RESOLVE_DELAY` (2 days).
 
 ## Read Functions (open to all)
 
@@ -181,6 +178,5 @@ See [scoring.md](../reference/scoring.md) for worked examples.
 | Chain | Monad Testnet (`eip155:10143`) |
 | RPC | `https://testnet-rpc.monad.xyz` |
 | SKCEngine | `0xbf0dA1CB08231893e9189C50e12de945164a4ff0` |
-| QueryFactory | `0x6669A4245Bc8Ee1cFC2cC8528281b9b51F2E3F98` |
 | AgentRegistry | `0xb87D556f28313df70d918b5D58D8ef3CEbC23f0E` |
 | ReputationManager | `0x13801b96ea8c979c1f140e46370c4dDb85065343` |

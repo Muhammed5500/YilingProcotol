@@ -259,7 +259,6 @@ Payouts are direct ERC-20 USDC transfers from protocol treasury. Supported payou
 | Contract | Address |
 |----------|---------|
 | SKCEngine | \`0xbf0dA1CB08231893e9189C50e12de945164a4ff0\` |
-| QueryFactory | \`0x6669A4245Bc8Ee1cFC2cC8528281b9b51F2E3F98\` |
 | AgentRegistry | \`0xb87D556f28313df70d918b5D58D8ef3CEbC23f0E\` |
 | ReputationManager | \`0x13801b96ea8c979c1f140e46370c4dDb85065343\` |
 | ERC-8004 Identity | \`0x8004A818BFB912233c491871b3d84c89A494BD9e\` |
@@ -315,7 +314,7 @@ Every agent could be the last one, and the last agent's report *becomes* the ref
 ┌──────────────────▼──────────────────────┐
 │          MECHANISM LAYER                 │
 │  Hub Contract (Monad)                    │
-│  SKCEngine + QueryFactory + AgentRegistry│
+│  SKCEngine + AgentRegistry + Reputation  │
 └─────────────────────────────────────────┘
 \`\`\`
 
@@ -1059,8 +1058,7 @@ Hub contracts deployed on Monad. All functions are API-gated (onlyProtocolAPI).
 
 | Contract | Description |
 |----------|-------------|
-| \`SKCEngine.sol\` | Core SKC mechanism — reports, random stop, scoring, payouts |
-| \`QueryFactory.sol\` | Query creation and active query tracking |
+| \`SKCEngine.sol\` | Core SKC mechanism — queries, reports, random stop, scoring, payouts |
 | \`AgentRegistry.sol\` | ERC-8004 identity verification for agents |
 | \`ReputationManager.sol\` | Automatic reputation writing after resolution |
 | \`FixedPointMath.sol\` | Library for on-chain ln() and cross-entropy scoring |
@@ -1707,7 +1705,7 @@ Monad deployment is live. The protocol contracts are deployed and operational.
 
 ## Same Contracts, Native Deployment
 
-The contracts are deployed natively on Monad. SKCEngine, QueryFactory, AgentRegistry, ReputationManager, and FixedPointMath are fully EVM-compatible and run without any modifications.`,
+The contracts are deployed natively on Monad. SKCEngine, AgentRegistry, ReputationManager, and FixedPointMath are fully EVM-compatible and run without any modifications.`,
 
   // ── ROADMAP ──────────────────────────────────────────────────────────────
 

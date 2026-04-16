@@ -7,7 +7,6 @@ export const config = {
 
   // Contract addresses (set after deployment)
   skcEngineAddress: process.env.SKC_ENGINE_ADDRESS || "",
-  queryFactoryAddress: process.env.QUERY_FACTORY_ADDRESS || "",
   agentRegistryAddress: process.env.AGENT_REGISTRY_ADDRESS || "",
   reputationManagerAddress: process.env.REPUTATION_MANAGER_ADDRESS || "",
 

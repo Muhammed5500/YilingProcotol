@@ -10,13 +10,10 @@ import {ReputationManager} from "./ReputationManager.sol";
 /// @dev Implements the self-resolving mechanism based on Harvard's SKC research
 ///      All core functions are API-gated — only the Protocol API can call them
 contract SKCEngine {
-    using FixedPointMath for uint256;
-
     // --- Constants ---
     uint256 public constant WAD = 1e18;
     uint256 public constant MIN_PROBABILITY = 0.01e18;
     uint256 public constant MAX_PROBABILITY = 0.99e18;
-    uint256 public constant FORCE_RESOLVE_DELAY = 2 days;
     int256 public constant WAD_INT = 1e18;
 
     // --- Structs ---
@@ -49,7 +46,6 @@ contract SKCEngine {
         string reputationTag;   // tag2 for reputation filtering
         string queryChain;      // chain where payments happen (set by builder's payment chain)
         string source;          // application identifier (e.g. "yiling-market", permissionless)
-        uint256 maxRounds;      // max reports before auto-resolve (0 = no limit)
     }
 
     // --- State ---
@@ -109,7 +105,6 @@ contract SKCEngine {
     error AgentNotEligible();
     error InsufficientFunding();
     error ChainMismatch();
-    error ForceResolveNotReady();
     error NoPayout();
 
     // --- Modifiers ---

@@ -249,7 +249,6 @@ This creates a query, runs 4 different strategies (random, trend, contrarian, ba
 | Contract | Address |
 |----------|---------|
 | SKCEngine | `0xbf0dA1CB08231893e9189C50e12de945164a4ff0` |
-| QueryFactory | `0x6669A4245Bc8Ee1cFC2cC8528281b9b51F2E3F98` |
 | AgentRegistry | `0xb87D556f28313df70d918b5D58D8ef3CEbC23f0E` |
 | ReputationManager | `0x13801b96ea8c979c1f140e46370c4dDb85065343` |
 | ERC-8004 Identity | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |

@@ -28,7 +28,7 @@ Yiling Protocol is a four-layer stack. Each layer has a specific responsibility.
 ┌──────────────────────▼──────────────────────┐
 │             MECHANISM LAYER                  │
 │  Hub Contract (Monad)                         │
-│  SKCEngine + QueryFactory + AgentRegistry     │
+│  SKCEngine + AgentRegistry                    │
 │  + ReputationManager + FixedPointMath         │
 └─────────────────────────────────────────────┘
 ```
@@ -69,12 +69,11 @@ All core Hub contract functions are gated by `onlyProtocolAPI` — only the Prot
 
 ### 4. Mechanism Layer — Hub Contract
 
-Single Solidity deployment on Monad. Five contracts:
+Single Solidity deployment on Monad. Four contracts:
 
 | Contract | Purpose |
 |----------|---------|
-| **SKCEngine** | Core SKC mechanism — reports, random stop, scoring, payouts |
-| **QueryFactory** | Query creation, active query tracking |
+| **SKCEngine** | Core SKC mechanism — queries, reports, random stop, scoring, payouts |
 | **AgentRegistry** | ERC-8004 identity verification |
 | **ReputationManager** | Automatic reputation writing after resolution |
 | **FixedPointMath** | WAD math library — ln, cross-entropy, delta scoring |

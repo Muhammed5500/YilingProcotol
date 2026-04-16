@@ -250,7 +250,7 @@ The API performs an ERC-20 `transfer` from the protocol treasury on the agent's 
 
 ### `POST /query/:id/resolve`
 
-Force-resolve a query (owner or after `FORCE_RESOLVE_DELAY = 2 days` for anyone).
+Force-resolve a query. Used by the orchestrator when the agent pool is exhausted without a random stop.
 
 **Response (200):**
 ```json

@@ -5,7 +5,6 @@ import {Script, console} from "forge-std/Script.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {ReputationManager} from "../src/ReputationManager.sol";
 import {SKCEngine} from "../src/SKCEngine.sol";
-import {QueryFactory} from "../src/QueryFactory.sol";
 
 contract DeployScript is Script {
     // ERC-8004 on Monad Testnet (public infrastructure addresses)
@@ -45,14 +44,7 @@ contract DeployScript is Script {
         );
         console.log("SKCEngine:", address(skcEngine));
 
-        // 4. Deploy QueryFactory — protocolAPI is separate from owner
-        QueryFactory queryFactory = new QueryFactory(
-            address(skcEngine),
-            protocolApi
-        );
-        console.log("QueryFactory:", address(queryFactory));
-
-        // 5. Authorize SKCEngine to write reputation
+        // 4. Authorize SKCEngine to write reputation
         reputationManager.authorizeCaller(address(skcEngine));
         console.log("SKCEngine authorized to write reputation");
 
@@ -65,7 +57,6 @@ contract DeployScript is Script {
         console.log("PROTOCOL_API=", protocolApi);
         console.log("TREASURY=", treasury);
         console.log("SKC_ENGINE_ADDRESS=", address(skcEngine));
-        console.log("QUERY_FACTORY_ADDRESS=", address(queryFactory));
         console.log("AGENT_REGISTRY_ADDRESS=", address(agentRegistry));
         console.log("REPUTATION_MANAGER_ADDRESS=", address(reputationManager));
     }

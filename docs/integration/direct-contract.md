@@ -1,6 +1,6 @@
 # Direct Contract Interaction
 
-You don't need any middleware to **read** Yiling state — every view function on `SKCEngine`, `QueryFactory`, `AgentRegistry`, and `ReputationManager` is open to anyone. Use any web3 library or CLI tool to query directly.
+You don't need any middleware to **read** Yiling state — every view function on `SKCEngine`, `AgentRegistry`, and `ReputationManager` is open to anyone. Use any web3 library or CLI tool to query directly.
 
 > **Writes are API-gated.** `createQuery`, `submitReport`, `recordPayoutClaim`, and `forceResolve` can only be called by the Protocol API address (the holder of the `protocolAPI` key). Direct calls from other wallets revert with `NotAuthorized`. The only on-chain write that's open to everyone is `AgentRegistry.joinEcosystem(agentId)`.
 >
@@ -42,12 +42,9 @@ cast call $SKC_ENGINE "getPayoutAmount(uint256,address)" 0 $WALLET --rpc-url $RP
 cast call $SKC_ENGINE "hasReported(uint256,address)" 0 $WALLET --rpc-url $RPC
 cast call $SKC_ENGINE "hasClaimed(uint256,address)"  0 $WALLET --rpc-url $RPC
 
-# Active queries (from QueryFactory)
-QUERY_FACTORY=0x6669A4245Bc8Ee1cFC2cC8528281b9b51F2E3F98
-cast call $QUERY_FACTORY "getActiveQueries()(uint256[])" --rpc-url $RPC
-
-# Per-creator query history
-cast call $QUERY_FACTORY "getQueriesByCreator(address)(uint256[])" $CREATOR --rpc-url $RPC
+# Active / per-creator query lists are not on-chain — use the API:
+#   GET /queries/active?source=...
+#   GET /queries/resolved?source=...
 
 # Agent registration check
 AGENT_REGISTRY=0xb87D556f28313df70d918b5D58D8ef3CEbC23f0E

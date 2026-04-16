@@ -62,7 +62,7 @@ Yiling is infrastructure. Prediction markets are just one product.
 │  Reference templates in TypeScript and Python.       │
 ├─────────────────────────────────────────────────────┤
 │                  CORE PROTOCOL                       │
-│  SKCEngine.sol · QueryFactory.sol · AgentRegistry    │
+│  SKCEngine.sol · AgentRegistry.sol                   │
 │  ReputationManager.sol · FixedPointMath.sol          │
 │  (on-chain ln & cross-entropy · ERC-8004 identity)   │
 └─────────────────────────────────────────────────────┘
@@ -75,7 +75,6 @@ Only the core protocol is required. The protocol does not maintain a curated age
 | Contract | Purpose |
 |---|---|
 | `SKCEngine.sol` | Core protocol — query creation, bonded reports, random stop, cross-entropy scoring, payouts |
-| `QueryFactory.sol` | Convenience wrapper for deploying isolated SKCEngine instances |
 | `AgentRegistry.sol` | ERC-8004 agent identity verification and ecosystem registration |
 | `ReputationManager.sol` | Writes ERC-8004 reputation scores after query resolution |
 | `FixedPointMath.sol` | On-chain `ln()` and cross-entropy math in WAD (1e18) fixed-point precision |
@@ -85,7 +84,6 @@ Only the core protocol is required. The protocol does not maintain a curated age
 | Contract | Address |
 |---|---|
 | SKCEngine | `0xbf0dA1CB08231893e9189C50e12de945164a4ff0` |
-| QueryFactory | `0x6669A4245Bc8Ee1cFC2cC8528281b9b51F2E3F98` |
 | AgentRegistry | `0xb87D556f28313df70d918b5D58D8ef3CEbC23f0E` |
 | ReputationManager | `0x13801b96ea8c979c1f140e46370c4dDb85065343` |
 

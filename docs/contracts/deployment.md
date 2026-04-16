@@ -1,6 +1,6 @@
 # Contract Deployment
 
-Deploy your own Yiling Protocol instance on any EVM-compatible chain. The protocol consists of four contracts that need to be deployed in dependency order.
+Deploy your own Yiling Protocol instance on any EVM-compatible chain. The protocol consists of three contracts that need to be deployed in dependency order.
 
 > **Most users don't need this.** The hosted instance at `api.yilingprotocol.com` is already deployed on Monad Testnet — you only need this guide if you want to run an isolated instance.
 
@@ -25,7 +25,7 @@ forge build
 
 ## Deploy
 
-The deploy script (`script/Deploy.s.sol`) deploys all four contracts and wires them together:
+The deploy script (`script/Deploy.s.sol`) deploys all three contracts and wires them together:
 
 ```bash
 PRIVATE_KEY=0xYOUR_DEPLOYER_KEY \
@@ -39,10 +39,9 @@ It performs these steps:
 1. Deploy `AgentRegistry(identityRegistry)`
 2. Deploy `ReputationManager(reputationRegistry)`
 3. Deploy `SKCEngine(agentRegistry, reputationManager, protocolAPI)`
-4. Deploy `QueryFactory(skcEngine, protocolAPI)`
-5. Call `ReputationManager.authorizeCaller(skcEngine)` so the engine can write SKC scores
+4. Call `ReputationManager.authorizeCaller(skcEngine)` so the engine can write SKC scores
 
-The script logs all four addresses at the end. Save them — your Protocol API needs them.
+The script logs all three addresses at the end. Save them — your Protocol API needs them.
 
 ## Customizing the Deploy Script
 
@@ -86,7 +85,7 @@ forge verify-contract $SKC_ENGINE \
     $AGENT_REGISTRY $REPUTATION_MANAGER $PROTOCOL_API)
 ```
 
-Repeat for `QueryFactory`, `AgentRegistry`, and `ReputationManager` with their own constructor args.
+Repeat for `AgentRegistry` and `ReputationManager` with their own constructor args.
 
 ## Chain-Specific Notes
 
@@ -110,9 +109,6 @@ cast send $SKC_ENGINE "transferOwnership(address)" $NEW_OWNER --private-key $OWN
 # Repoint AgentRegistry / ReputationManager
 cast send $SKC_ENGINE "setAgentRegistry(address)"     $NEW_AGENT_REGISTRY --private-key $OWNER_KEY --rpc-url $RPC
 cast send $SKC_ENGINE "setReputationManager(address)" $NEW_REPUTATION_MANAGER --private-key $OWNER_KEY --rpc-url $RPC
-
-# Update QueryFactory binding
-cast send $QUERY_FACTORY "setSKCEngine(address)" $NEW_SKC_ENGINE --private-key $OWNER_KEY --rpc-url $RPC
 ```
 
 ## Wiring the Protocol API
@@ -121,7 +117,6 @@ Once deployed, configure your Protocol API's `.env`:
 
 ```env
 SKC_ENGINE_ADDRESS=0x...
-QUERY_FACTORY_ADDRESS=0x...
 AGENT_REGISTRY_ADDRESS=0x...
 REPUTATION_MANAGER_ADDRESS=0x...
 TREASURY_ADDRESS=0x...

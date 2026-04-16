@@ -22,7 +22,6 @@ The protocol is **modular**: a single Hub contract on Monad, an x402-paid Protoc
 ### Smart Contracts
 - [Deployment Guide](contracts/deployment.md) — Deploy on any chain
 - [SKCEngine](contracts/skc-engine.md) — Core protocol contract (queries, reports, scoring, payouts)
-- [QueryFactory](contracts/query-factory.md) — Active query registry and per-creator index
 - [AgentRegistry](contracts/agent-registry.md) — ERC-8004 agent identity gateway
 - [ReputationManager](contracts/reputation-manager.md) — ERC-8004 reputation writer and queries
 - [FixedPointMath](contracts/fixed-point-math.md) — On-chain `ln()` and cross-entropy math

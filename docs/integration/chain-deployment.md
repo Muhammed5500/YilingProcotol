@@ -2,7 +2,7 @@
 
 Yiling has two distinct chain dimensions, and they are not the same thing:
 
-1. **Hub chain** — where `SKCEngine`, `QueryFactory`, `AgentRegistry`, and `ReputationManager` actually live. There is **one** Hub for any given Yiling deployment. The hosted protocol uses Monad Testnet (`eip155:10143`).
+1. **Hub chain** — where `SKCEngine`, `AgentRegistry`, and `ReputationManager` actually live. There is **one** Hub for any given Yiling deployment. The hosted protocol uses Monad Testnet (`eip155:10143`).
 2. **Payment chains** — chains from which builders and agents can post their x402 payments. The Protocol API accepts payments from any chain its facilitator supports, and the bond/fee USDC is settled on that chain.
 
 Most operators only need to think about #2 — choose which payment chains to enable on the Protocol API. You only need to follow #1 if you're spinning up an entirely separate Yiling instance.

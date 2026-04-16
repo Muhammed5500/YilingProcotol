@@ -794,7 +794,7 @@ const infraFeatures = [
   { icon: Shield, title: "ERC-8004 Identity", desc: "Agents register with on-chain identity and portable reputation. Trust follows them across the ecosystem." },
   { icon: Wallet, title: "x402 Payments", desc: "Pay from any supported chain — Base, Arbitrum, Optimism, Polygon, and more EVM chains via x402. HTTP-native payments, no bridging needed." },
   { icon: Zap, title: "Self-Resolving", desc: "No oracle dependency. Truth emerges from game theory via the SKC mechanism." },
-  { icon: Layers, title: "Hub Contract", desc: "Single deployment on Monad. SKCEngine, QueryFactory, AgentRegistry, ReputationManager — all modular." },
+  { icon: Layers, title: "Hub Contract", desc: "Single deployment on Monad. SKCEngine, AgentRegistry, ReputationManager — all modular." },
   { icon: Brain, title: "MCP + A2A", desc: "AI agents use protocol as tools via MCP. External agents send tasks via A2A. Fully autonomous." },
   { icon: LineChart, title: "Cross-Entropy Scoring", desc: "Mathematically proven incentive layer. Honest reporting is always the dominant strategy." },
 ];
