@@ -7,12 +7,14 @@
  * 3. Free endpoint → expect 200 without payment
  */
 
+import "dotenv/config";
 import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const API_URL = "http://localhost:3001";
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x75796d8d70e01350e9114f68c754b9ec184c99a86b3079eaa41a03477da1f484";
+const PRIVATE_KEY = process.env.TEST_BUILDER_KEY;
+if (!PRIVATE_KEY) throw new Error("Missing env var: TEST_BUILDER_KEY. See api/.env.example.");
 
 async function main() {
   console.log("=== x402 Payment Flow Test ===\n");
