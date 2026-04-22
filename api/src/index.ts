@@ -34,11 +34,6 @@ app.route("/webhooks", webhookRoutes);
 const a2aRoutes = createA2ARoutes(process.env.API_BASE_URL || `https://api.yilingprotocol.com`);
 app.route("/", a2aRoutes);
 
-// Export for query.ts to update DB on create
-export function cacheQuerySource(queryId: string, source: string) {
-  // Now handled by db.upsertQuery — kept for backward compat
-}
-
 // Active queries list (free) — reads from SQLite, 0 RPC calls
 app.get("/queries/active", (c) => {
   const sourceFilter = c.req.query("source");
