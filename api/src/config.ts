@@ -36,11 +36,12 @@ export const config = {
   },
 
   // x402 inbound payment chains — all supported networks
-  // Hub contract stays on Monad, payments accepted from any chain
+  // Hub contract stays on Monad, payments accepted from any chain.
+  // Monad is listed first because it is the canonical / default chain.
   acceptedPayments: process.env.NETWORK_ENV === "mainnet"
     ? [
-        { network: "eip155:8453", asset: "USDC" },      // Base
         { network: "eip155:10143", asset: "USDC" },     // Monad
+        { network: "eip155:8453", asset: "USDC" },      // Base
         { network: "eip155:42161", asset: "USDC" },     // Arbitrum
         { network: "eip155:10", asset: "USDC" },        // Optimism
         { network: "eip155:1", asset: "USDC" },         // Ethereum
@@ -48,7 +49,7 @@ export const config = {
         { network: "eip155:43114", asset: "USDC" },     // Avalanche
       ]
     : [
-        { network: "eip155:84532", asset: "USDC" },     // Base Sepolia
         { network: "eip155:10143", asset: "USDC" },     // Monad Testnet
+        { network: "eip155:84532", asset: "USDC" },     // Base Sepolia
       ],
 };

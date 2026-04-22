@@ -28,10 +28,13 @@ type PaymentEnv = {
 // Only list networks whose facilitators actually support them.
 // CDP facilitator supports Base Sepolia. Monad has its own facilitator.
 // Arbitrum/Ethereum Sepolia NOT supported by CDP yet — add when available.
+// Monad is listed first — Hub contract lives on Monad, so it is the
+// canonical payment network and the default when no X-PREFERRED-CHAIN
+// hint is sent.
 const EVM_NETWORKS: `${string}:${string}`[] = config.isMainnet
   ? [
-      "eip155:8453",       // Base
       "eip155:10143",      // Monad
+      "eip155:8453",       // Base
       "eip155:42161",      // Arbitrum
       "eip155:10",         // Optimism
       "eip155:1",          // Ethereum
@@ -39,8 +42,8 @@ const EVM_NETWORKS: `${string}:${string}`[] = config.isMainnet
       "eip155:43114",      // Avalanche
     ]
   : [
-      "eip155:84532",      // Base Sepolia
       "eip155:10143",      // Monad Testnet
+      "eip155:84532",      // Base Sepolia
     ];
 
 export const allNetworks = EVM_NETWORKS;
@@ -330,16 +333,20 @@ export function createMultiFacilitatorMiddleware(payTo: string) {
         fallback = cdpFallbackMiddleware;
       }
     } else {
-      // No payment header — 402 response. Use preferred chain hint or default to CDP
+      // No payment header — 402 challenge. Default to Monad since the Hub
+      // contract lives there; only route to CDP when the caller explicitly
+      // preferred a non-Monad chain. A missing header used to fall to CDP
+      // (Base Sepolia), which is inconsistent with the rest of the stack.
       const preferredChain = c.req.header("X-PREFERRED-CHAIN") || "";
-      if (isMonadNetwork(preferredChain)) {
+      const explicitNonMonad = preferredChain !== "" && !isMonadNetwork(preferredChain);
+      if (explicitNonMonad) {
+        useMiddleware = cdpMiddleware;
+        fallback = cdpFallbackMiddleware;
+      } else {
         useMiddleware = monadMiddleware;
         // Do NOT fall back to CDP for Monad — it would return Base Sepolia accepts,
         // causing chainId mismatch when the wallet is on Monad
         fallback = null;
-      } else {
-        useMiddleware = cdpMiddleware;
-        fallback = cdpFallbackMiddleware;
       }
     }
 
